@@ -5,8 +5,10 @@ var Schema = mongoose.Schema;
 var crypto = require('crypto');
 
 var UserSchema = new Schema({
-  name: String,
-  email: { type: String, lowercase: true },
+  phone: { type: String, index: true, unique: true, required: true, match: /[0-9]{11,14}$/},
+  active: Boolean,
+  code: Number,//{type: Number, min: 100, max: 999 },
+  email: { type: String, lowercase: true }, //TODO: REQUIRE EMAIL?
   role: {
     type: String,
     default: 'user'
@@ -35,7 +37,7 @@ UserSchema
   .virtual('profile')
   .get(function() {
     return {
-      'name': this.name,
+      'name': this.phone,
       'role': this.role
     };
   });
