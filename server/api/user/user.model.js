@@ -8,6 +8,7 @@ var UserSchema = new Schema({
   phone: { type: String, index: true, unique: true, required: true, match: /[0-9]{11,14}$/},
   active: Boolean,
   code: Number,//{type: Number, min: 100, max: 999 },
+  passcode: String,
   email: { type: String, lowercase: true }, //TODO: REQUIRE EMAIL?
   role: {
     type: String,
@@ -64,11 +65,11 @@ UserSchema
   }, 'Email cannot be blank');
 
 // Validate empty password
-UserSchema
+/*UserSchema
   .path('hashedPassword')
   .validate(function(hashedPassword) {
     return hashedPassword.length;
-  }, 'Password cannot be blank');
+  }, 'Password cannot be blank');*/
 
 // Validate email is not taken
 UserSchema

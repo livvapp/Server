@@ -15,9 +15,11 @@ exports.setup = function (User, config) {
         if (!user) {
           return done(null, false, { message: 'This phone number is not registered.' });
         }
-        if (!user.authenticate(password)) {
+        
+        /*if (!user.authenticate(password)) {
           return done(null, false, { message: 'This password is not correct.' });
-        }
+        }*/
+
         return done(null, user);
       });
     }
