@@ -86,7 +86,7 @@ exports.create = function(req, res) {
 
       emailobj.save(function (err) {
       if (err) { return handleError(res, err); }
-      return res.json(200);
+      return res.send(200);
       });
     }
   });
@@ -106,7 +106,7 @@ exports.update = function(req, res) {
       updated.email = address;
       updated.save(function (err) {
         if (err) { return handleError(res, err); }
-        return res.json(200);
+        return res.send(200);
       });
     } else return res.send(304);
   });

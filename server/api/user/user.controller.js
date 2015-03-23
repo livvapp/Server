@@ -124,7 +124,7 @@ exports.login = function(req, res, next) {
 
   query.findOne(function (err, user) {
     if (err) return next(err);
-    if (!user) return res.json(401);
+    if (!user) return res.send(401);
 
     var api = plivo.RestAPI({
       authId: 'MAOGMYMDY2NDU1MDJMYM',
@@ -165,7 +165,7 @@ exports.activate = function(req, res, next) {
 
   query.findOne(function (err, user) {
     if (err) return next(err);
-    if (!user) return res.json(401);
+    if (!user) return res.send(401);
     if(user.code == Number(req.get('code'))) {
       user.active = true;
       user.code = undefined;
@@ -234,7 +234,7 @@ exports.me = function(req, res, next) {
     _id: userId
   }, '-salt -hashedPassword', function(err, user) { // don't ever give out the password or salt
     if (err) return next(err);
-    if (!user) return res.json(401);
+    if (!user) return res.send(401);
     res.json(user);
   });
 };

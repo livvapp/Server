@@ -16,7 +16,7 @@ router.post('/', function(req, res, next) {
 				if(!tok) { return res.send(401); }
 				if(tok.passcode != req.body.password) {
 					//console.log("tok.passcode = " + tok.passcode + ", req.body.password = " + req.body.password);
-					return res.json(401);
+					return res.send(401);
 				}
 				tok.remove(function(err) {
       				if(err) { return handleError(res, err); }
@@ -31,10 +31,10 @@ router.post('/', function(req, res, next) {
 				})(req, res, next)
 			});
 		} else {
-			return res.json(400);
+			return res.send(400);
 		}
 	} else {
-		return res.json(400);
+		return res.send(400);
 	}
 });
 
