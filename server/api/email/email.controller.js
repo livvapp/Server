@@ -36,7 +36,7 @@ exports.create = function(req, res) {
           rateLimit: 1 // Unil production ready
       }));
 
-      var sub = code.toString() + " - Your Pleeb Activation Code!";
+      var sub = code.toString() + " - Your Livv Activation Code!";
       var bod = "Please enter this three digit code to confirm your email: " + code.toString();
 
       var mailOptions = {

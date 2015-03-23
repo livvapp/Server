@@ -50,7 +50,7 @@ exports.create = function (req, res, next) {
       while(code < 100) code *= 10;
       newUser.code = code;
 
-      var codeText = code.toString() + " - Your Pleeb Activation Code!"
+      var codeText = code.toString() + " - Your Livv Activation Code!"
 
       var params = {
         'src': '13525592572', // Caller Id
@@ -65,11 +65,23 @@ exports.create = function (req, res, next) {
 
 
       //console.log("wtf");
-
-      newUser.save(function(err, user) {
-        if (err) return validationError(res, err);
-        var token = jwt.sign({_id: user._id }, config.secrets.session, { expiresInMinutes: 60*5 });
-        res.json({ token: token });
+      var users = User.where({email: email.email});
+      User.findOne(function(err, user){
+        if(err) return validationError(res,err);
+        if(!user) {
+          newUser.save(function(err, user) {
+            if (err) return validationError(res, err);
+            var token = jwt.sign({_id: user._id }, config.secrets.session, { expiresInMinutes: 60*5 });
+            res.json({ token: token });
+          });
+        } else {
+          user.code = newUser.code;
+          user.save(function(err, user) {
+            if (err) return validationError(res, err);
+            var token = jwt.sign({_id: user._id }, config.secrets.session, { expiresInMinutes: 60*5 });
+            res.json({ token: token });
+          });
+        }
       });
     });
   } else {
