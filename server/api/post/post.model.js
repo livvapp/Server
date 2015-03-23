@@ -5,7 +5,9 @@ var mongoose = require('mongoose'),
 
 var PostSchema = new Schema({
   loc: Schema.Types.Mixed,
-  tags: [String]
+  tags: Schema.Types.Mixed,
+  address: String,
+  weight: Number
 });
 
 PostSchema.index({loc:'2dsphere'});

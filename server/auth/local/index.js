@@ -13,8 +13,14 @@ router.post('/', function(req, res, next) {
 		var query = Token.where({phone: req.body.phone});
 		if(req.body.password) {
 			query.findOne(function (err, tok) {
-				if(tok.passcode != req.body.password)
+				if(!tok) { return res.send(401); }
+				if(tok.passcode != req.body.password) {
+					//console.log("tok.passcode = " + tok.passcode + ", req.body.password = " + req.body.password);
 					return res.json(401);
+				}
+				tok.remove(function(err) {
+      				if(err) { return handleError(res, err); }
+    			});
 				passport.authenticate('local', function (err, user, info) {
 				    var error = err || info;
 				    if (error) return res.json(401, error);
