@@ -1,5 +1,5 @@
 'use strict';
-
+var ttl = require('mongoose-ttl');
 var mongoose = require('mongoose'),
     Schema = mongoose.Schema;
 
@@ -8,5 +8,7 @@ var EmailSchema = new Schema({
   code: {type: Number, max: 999, min: 100, required: true},
   verified: {type: Boolean, required: true}
 });
+
+EmailSchema.plugin(ttl, { ttl: '2m' });
 
 module.exports = mongoose.model('Email', EmailSchema);
