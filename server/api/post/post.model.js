@@ -12,6 +12,6 @@ var PostSchema = new Schema({
 });
 
 PostSchema.index({loc:'2dsphere'});
-PostSchema.plugin(ttl, { ttl: '3h' });
+PostSchema.plugin(ttl, { ttl: '2h' });
 
 module.exports = mongoose.model('Post', PostSchema);

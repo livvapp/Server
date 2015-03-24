@@ -104,6 +104,7 @@ exports.update = function(req, res) {
       var address = email.email;
       var updated = _.merge(email, req.body);
       updated.email = address;
+      // updated.resetTTL();//TODO: remove this line
       updated.save(function (err) {
         if (err) { return handleError(res, err); }
         return res.send(200);

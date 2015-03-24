@@ -62,6 +62,7 @@ exports.create = function(req, res) {
       });
     } else {
       po.weight++;
+      po.resetTTL();
 
       var tags = po.tags;
       //console.log(tags);  
