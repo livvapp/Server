@@ -118,39 +118,28 @@ exports.destroy = function(req, res) {
 /**
  * Change a users password
  */
-exports.login = function(req, res, next) {
+exports.username = function(req, res, next) {
   
-  var query = User.where({phone: req.params.phone})
+  //ar query = User.where({phone: req.params.phone})
+  var userId = req.user._id;
 
-  query.findOne(function (err, user) {
+  User.findById(userId, function (err, user) {
     if (err) return next(err);
     if (!user) return res.send(401);
+    if(!req.body.username) {
+      return res.send(403);
+    }
 
-    var api = plivo.RestAPI({
-      authId: 'MAOGMYMDY2NDU1MDJMYM',
-      authToken: 'NTYyOGU0NGYyODVhZDk4NWM2NzM5NjYyMjEyNjg4'
-    });
+    var usernames = User.where({username: req.body.username})
+    usernames.findOne(function(err, username){
+      if (err) return next(err);
+      if (username) return res.send(400);
 
-    var code = Math.round(Math.random()*1000000);
-    while(code < 100000) code *= 10;
-    user.passcode = code.toString();
-
-    var codeText = code.toString() + " - Your Pleeb Login Code!"
-
-    var params = {
-      'src': '13525592572', // Caller Id
-      'dst' : user.phone, // User Number to Call
-      'text' : codeText,
-      'type' : "sms",
-    };
-
-    api.send_message(params, function (status, response) {
-      //TODO: LOGGING
-    });
-
-    user.save(function(err) {
-      if (err) return validationError(res, err);
-      res.send(200);
+      user.username = req.body.username;
+      user.save(function(err) {
+        if (err) return validationError(res, err);
+        return res.send(200);
+      });
     });
   });
 

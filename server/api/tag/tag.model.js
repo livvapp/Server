@@ -5,7 +5,8 @@ var mongoose = require('mongoose'),
 
 var TagSchema = new Schema({
   name: String,
-  frequency: Number
+  frequency: Number,
+  list: [String]
 });
 
-module.exports = mongoose.model('Tag', TagSchema);
+module.exports = mongoose.model('Tag', TagSchema); 
