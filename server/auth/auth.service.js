@@ -28,6 +28,7 @@ function isAuthenticated() {
       User.findById(req.user._id, function (err, user) {
         if (err) return next(err);
         if (!user) return res.send(401);
+        //console.log(user);
         if (user.active == false) return res.send(401);
 
         req.user = user;

@@ -5,7 +5,6 @@ var Email = require('../email/email.model');
 var passport = require('passport');
 var config = require('../../config/environment');
 var jwt = require('jsonwebtoken');
-var plivo = require('plivo');
 //var Tag = require('../tag/tag.model');
 
 var validationError = function(res, err) {
@@ -28,6 +27,7 @@ exports.index = function(req, res) {
  * TODO: Fix potential bug with database access query.findOne...
  */
 exports.create = function (req, res, next) {
+  var plivo = require('plivo');
   var newUser = new User(req.body);
   newUser.provider = 'local';
   newUser.role = 'user';
@@ -41,7 +41,7 @@ exports.create = function (req, res, next) {
       if(email.verified == false) {
         return validationError(res,{error:"Email has not been verified."});
       }
-
+      
       var api = plivo.RestAPI({
         authId: 'MAOGMYMDY2NDU1MDJMYM',
         authToken: 'NTYyOGU0NGYyODVhZDk4NWM2NzM5NjYyMjEyNjg4'
@@ -66,20 +66,22 @@ exports.create = function (req, res, next) {
 
 
       //console.log("wtf");
+      //console.log(email.email);
       var users = User.where({email: email.email});
-      User.findOne(function(err, user){
+      users.findOne(function(err, user){
         if(err) return validationError(res,err);
         if(!user) {
-          newUser.save(function(err, user) {
+          User.create(newUser, function(err, user) {
             if (err) return validationError(res, err);
-            var token = jwt.sign({_id: user._id }, config.secrets.session, { expiresInMinutes: 60*5 });
+            var token = jwt.sign({_id: user._id }, config.secrets.session);
             res.json({ token: token });
           });
         } else {
+          //console.log(user.email);
           user.code = newUser.code;
           user.save(function(err, user) {
             if (err) return validationError(res, err);
-            var token = jwt.sign({_id: user._id }, config.secrets.session, { expiresInMinutes: 60*5 });
+            var token = jwt.sign({_id: user._id }, config.secrets.session);
             res.json({ token: token });
           });
         }
@@ -123,6 +125,26 @@ exports.username = function(req, res, next) {
   
   //ar query = User.where({phone: req.params.phone})
   var userId = req.user._id;
+  if(req.body.username) {
+    if(typeof req.body.username == "string") {
+      if(req.body.username.indexOf(".") != -1) {
+        var parts = req.body.username.split(".")
+        req.body.username = "";
+        parts.forEach(function(element, index, array){
+          req.body.username += element;
+        });
+      } 
+      if(req.body.username.indexOf("$") != -1) {
+        var parts = req.body.username.split("$")
+        req.body.username = "";
+        parts.forEach(function(element, index, array){
+          req.body.username += element;
+        });
+      } 
+      if(req.body.username.length == 0)
+        return res.send(403);
+    }
+  }
 
   User.findById(userId, function (err, user) {
     if (err) return next(err);
@@ -200,6 +222,7 @@ exports.activate = function(req, res, next) {
  * Resend text message
  */
 exports.resend = function(req, res, next) {
+  var plivo = require('plivo');
 
   var query = User.where({phone: req.params.phone})
 

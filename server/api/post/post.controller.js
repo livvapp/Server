@@ -4,6 +4,21 @@ var _ = require('lodash');
 var Post = require('./post.model');
 var User = require('../user/user.model');
 
+
+exports.tags = function(req, res) {
+  /*var userId = req.user._id;*/
+  if(!req.user.username)  return res.send(304);
+  console.log(req.user.username);
+  if(!req.get("address")) return res.send(403);
+  var query = Post.where({address: req.get("address")});
+  query.findOne( function(err, post) {
+    if(err) { return handleError(res, err); }
+    if(!post) { return res.send(404); }
+    return res.json({list: post.usertotag[req.user.username]});
+  });
+
+};
+
 // Get list of ratings
 exports.index = function(req, res) {
 
@@ -43,7 +58,7 @@ exports.index = function(req, res) {
       });
     });*/
 posts.push({address: "default", tags: {"Deltopia": 0, "I❤️ Vista": 0, "Dayger": 0, "Kickback": 0}, loc: {}, weight: 0});
-    return res.json(200, posts);
+    return res.json(posts);
   });
 
 };
