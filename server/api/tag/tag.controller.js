@@ -13,11 +13,40 @@ exports.index = function(req, res) {
 
 // Get a single tag
 exports.show = function(req, res) {
+  var redis = require("redis"), client = redis.createClient();
+  client.on("error", function (err) {
+      return handleError(res, err);
+  });
+
+  var args1 = [ req.params.tag, '0', '19' ];
+  client.zrevrange(args1, function (err, response) {
+      if (err) { return handleError(res, err); }
+      var args2 = [ req.params.tag ];
+      client.zcard(args2, function (err, count) {
+        if (err) { return handleError(res, err); }
+        client.quit();
+        return res.json({list: response, total: count});
+    });
+  });
+/*
+  client.set("string key", "string val", redis.print);
+  client.hset("hash key", "hashtest 1", "some value", redis.print);
+  client.hset(["hash key", "hashtest 2", "some other value"], redis.print);
+  client.hkeys("hash key", function (err, replies) {
+      console.log(replies.length + " replies:");
+      replies.forEach(functio__n (reply, i) {
+          console.log("    " + i + ": " + reply);
+      });
+      client.quit();
+      return res.send(200);
+  });*/
+
+  /*
   Tag.findById(req.params.id, function (err, tag) {
     if(err) { return handleError(res, err); }
     if(!tag) { return res.send(404); }
     return res.json(tag);
-  });
+  });*/
 };
 
 // Creates a new tag in the DB.

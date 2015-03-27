@@ -6,6 +6,7 @@ var passport = require('passport');
 var config = require('../../config/environment');
 var jwt = require('jsonwebtoken');
 var plivo = require('plivo');
+//var Tag = require('../tag/tag.model');
 
 var validationError = function(res, err) {
   return res.json(422, err);
@@ -116,7 +117,7 @@ exports.destroy = function(req, res) {
 };
 
 /**
- * Change a users password
+ * Set Username
  */
 exports.username = function(req, res, next) {
   
@@ -140,6 +141,32 @@ exports.username = function(req, res, next) {
         if (err) return validationError(res, err);
         return res.send(200);
       });
+    });
+  });
+
+};
+
+exports.tag = function(req, res, next) {
+  
+  //ar query = User.where({phone: req.params.phone})
+  var userId = req.user._id;
+
+  User.findById(userId, function (err, user) {
+    if (err) return next(err);
+    if (!user) return res.send(401);
+    if(!user.username) {
+      return res.send(403);
+    }
+    var redis = require("redis"), client = redis.createClient();
+    client.on("error", function (err) {
+        return handleError(res, err);
+    });
+
+    var args1 = [ req.params.tag, user.username ];
+    client.zrevrank(args1, function (err, response) {
+      if (err) { return handleError(res, err); }
+      client.quit();
+      return res.json({rank: response+1});
     });
   });
 

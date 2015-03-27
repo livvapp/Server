@@ -8,7 +8,11 @@ var PostSchema = new Schema({
   loc: Schema.Types.Mixed,
   tags: Schema.Types.Mixed,
   address: String,
-  weight: Number
+  toptag: String,
+  topweight: Number,
+  weight: Number,
+  usertotag: Schema.Types.Mixed,
+  tagtouser: Schema.Types.Mixed
 });
 
 PostSchema.index({loc:'2dsphere'});
