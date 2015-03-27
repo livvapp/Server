@@ -13,15 +13,16 @@ exports.index = function(req, res) {
 
 // Get a single tag
 exports.show = function(req, res) {
+  if(!req.get("tag")) return res.send(304);
   var redis = require("redis"), client = redis.createClient();
   client.on("error", function (err) {
       return handleError(res, err);
   });
 
-  var args1 = [ req.params.tag, '0', '19' ];
+  var args1 = [ req.get("tag"), '0', '19' ];
   client.zrevrange(args1, function (err, response) {
       if (err) { return handleError(res, err); }
-      var args2 = [ req.params.tag ];
+      var args2 = [ req.get("tag") ];
       client.zcard(args2, function (err, count) {
         if (err) { return handleError(res, err); }
         client.quit();

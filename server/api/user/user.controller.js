@@ -150,6 +150,7 @@ exports.tag = function(req, res, next) {
   
   //ar query = User.where({phone: req.params.phone})
   var userId = req.user._id;
+  if(!req.get("tag")) return res.send(304);
 
   User.findById(userId, function (err, user) {
     if (err) return next(err);
@@ -162,7 +163,7 @@ exports.tag = function(req, res, next) {
         return handleError(res, err);
     });
 
-    var args1 = [ req.params.tag, user.username ];
+    var args1 = [ req.get("tag"), user.username ];
     client.zrevrank(args1, function (err, response) {
       if (err) { return handleError(res, err); }
       client.quit();
