@@ -13,7 +13,8 @@ exports.index = function(req, res) {
 
 // Get a single tag
 exports.show = function(req, res) {
-  if(!req.body.tag) return res.send(304);
+  return res.send(501);
+  /*if(!req.body.tag) return res.send(304);
   var redis = require("redis"), client = redis.createClient();
   client.on("error", function (err) {
       return handleError(res, err);
@@ -28,7 +29,7 @@ exports.show = function(req, res) {
         client.quit();
         return res.json({list: response, total: count});
     });
-  });
+  });*/
 /*
   client.set("string key", "string val", redis.print);
   client.hset("hash key", "hashtest 1", "some value", redis.print);

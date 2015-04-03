@@ -120,7 +120,7 @@ exports.create = function(req, res) {
           req.body.tagtouser[req.body.tag] = [user.username];
           req.body.usertotag = {};
           req.body.usertotag[user.username] = [req.body.tag];
-          var redis = require("redis"), client = redis.createClient();
+         /*var redis = require("redis"), client = redis.createClient();
         client.on("error", function (err) {
         return handleError(res, err);
         });
@@ -128,7 +128,7 @@ exports.create = function(req, res) {
          client.zincrby(args, function (err, response) {
           if (err) return validationError(res, err);
           client.quit();
-         });
+         });*/
         }
 
         req.body.weight = 1;
@@ -192,7 +192,7 @@ exports.create = function(req, res) {
         /* console.log(tags);
          console.log(po.tags);
          console.log(po);*/
-        var redis = require("redis"), client = redis.createClient();
+        /*ar redis = require("redis"), client = redis.createClient();
         client.on("error", function (err) {
         return handleError(res, err);
         });
@@ -213,7 +213,7 @@ exports.create = function(req, res) {
               });
             }
           });
-         });
+         });*/
 
          po.tagtouser[req.body.tag].forEach(function(element, index, array){
 

@@ -3,7 +3,8 @@
 var _ = require('lodash');
 var Email = require('./email.model');
 var nodemailer = require('nodemailer');
-var sesTransport = require('nodemailer-ses-transport');
+//var sesTransport = require('nodemailer-ses-transport');
+var mandrill = require('node-mandrill')('KTJENiu1RBdZLqPeenbIoA');
 
 // Get list of emails
 // TODO: GET RID OF THIS!!!!!!!!
@@ -30,16 +31,16 @@ exports.create = function(req, res) {
       emailobj.verified = false;
       emailobj.code = code;
 
-      var transport = nodemailer.createTransport(sesTransport({
+      /*var transport = nodemailer.createTransport(sesTransport({
           accessKeyId: "AKIAIFUCSNSENHLEVQMQ",
           secretAccessKey: "FMeB+6csdIJqqNo81s1DYehjDWpuTkyWCdH0AavW",
           rateLimit: 1 // Unil production ready
-      }));
+      }));*/
 
       var sub = code.toString() + " - Your Livv Activation Code!";
       var bod = "Please enter this three digit code to confirm your email: " + code.toString();
 
-      var mailOptions = {
+      /*var mailOptions = {
           from: "noreply@pleebapp.com",
           to: req.body.email,
           subject: sub,
@@ -48,6 +49,23 @@ exports.create = function(req, res) {
 
       transport.sendMail(mailOptions, function(err, info) { 
       // TODO: LOGGING
+      });*/
+
+      mandrill('/messages/send', {
+          message: {
+              to: [{email: req.body.email}],
+              from_email: 'livy@livv.net',
+              from_name: "Titus Patavinus",
+              subject: sub,
+              text: bod
+          }
+      }, function(error, response)
+      {
+          //uh oh, there was an error
+          if (error) console.log( JSON.stringify(error) );
+
+          //everything's good, lets see what mandrill said
+          else console.log(response);
       });
 
       Email.create(emailobj, function(err, email) {
@@ -60,16 +78,16 @@ exports.create = function(req, res) {
       var code = Math.round(Math.random()*1000);
       while(code < 100) code *= 10;
 
-      var transport = nodemailer.createTransport(sesTransport({
+      /*var transport = nodemailer.createTransport(sesTransport({
           accessKeyId: "AKIAIFUCSNSENHLEVQMQ",
           secretAccessKey: "FMeB+6csdIJqqNo81s1DYehjDWpuTkyWCdH0AavW",
           rateLimit: 1 // Unil production ready
-      }));
+      }));*/
 
-      var sub = code.toString() + " - Your Pleeb Activation Code!";
+      var sub = code.toString() + " - Your Livv Activation Code!";
       var bod = "Please enter this three digit code to confirm your email: " + code.toString();
 
-      var mailOptions = {
+      /*var mailOptions = {
           from: "noreply@pleebapp.com",
           to: req.body.email,
           subject: sub,
@@ -78,6 +96,22 @@ exports.create = function(req, res) {
 
       transport.sendMail(mailOptions, function(err, info) { 
       // TODO: LOGGING
+      });*/
+      mandrill('/messages/send', {
+          message: {
+              to: [{email: req.body.email}],
+              from_email: 'livy@livv.net',
+              from_name: "Titus Patavinus",
+              subject: sub,
+              text: bod
+          }
+      }, function(error, response)
+      {
+          //uh oh, there was an error
+          if (error) console.log( JSON.stringify(error) );
+
+          //everything's good, lets see what mandrill said
+          else console.log(response);
       });
 
       var emailobj = email;

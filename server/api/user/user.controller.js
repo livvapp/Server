@@ -171,7 +171,7 @@ exports.username = function(req, res, next) {
 exports.tag = function(req, res, next) {
   
   //ar query = User.where({phone: req.params.phone})
-  var userId = req.user._id;
+  /*var userId = req.user._id;
   if(!req.body.tag) return res.send(403);
 
   User.findById(userId, function (err, user) {
@@ -191,7 +191,8 @@ exports.tag = function(req, res, next) {
       client.quit();
       return res.json({rank: response+1});
     });
-  });
+  });*/
+  return res.send(501);
 
 };
 
