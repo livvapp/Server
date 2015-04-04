@@ -11,8 +11,7 @@ var PostSchema = new Schema({
   toptag: String,
   topweight: Number,
   weight: Number,
-  usertotag: Schema.Types.Mixed,
-  tagtouser: Schema.Types.Mixed
+  usertotag: Schema.Types.Mixed
 });
 
 PostSchema.index({loc:'2dsphere'});
