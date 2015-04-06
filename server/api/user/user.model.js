@@ -5,8 +5,9 @@ var Schema = mongoose.Schema;
 var crypto = require('crypto');
 
 var UserSchema = new Schema({
-  phone: { type: String, index: true, unique: true, required: true, match: /[0-9]{11,14}$/},
+  phone: { type: String, index: true, unique: true, required: true, match: /^[0-9]{11,14}$/},
   active: Boolean,
+  feed: [Schema.Types.Mixed],
   code: Number,//{type: Number, min: 100, max: 999 },
   //passcode: String,
   email: { type: String, lowercase: true }, //TODO: REQUIRE EMAIL?
@@ -14,7 +15,7 @@ var UserSchema = new Schema({
     type: String,
     default: 'user'
   },
-  username: { type: String },
+  username: String,
   hashedPassword: String,
   provider: String,
   salt: String

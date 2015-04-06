@@ -3,6 +3,7 @@
 var _ = require('lodash');
 var Post = require('./post.model');
 var User = require('../user/user.model');
+var plivo = require('plivo');
 
 
 exports.tags = function(req, res) {
@@ -110,29 +111,81 @@ exports.create = function(req, res) {
          return res.send(403);
       }
 
-      if(!_.contains(post.usertotag[user.phone],element)) {
+      var users = element.match(/@[0-9]{11,14}/g);
+      if(users) {
+        users.forEach(function(element, index, array){
+          var query = User.where({phone: element.substring(1)});
+          query.findOne(function(err, user){
+            if(err) { return handleError(res, err); }
+            if(!user) {
+              var api = plivo.RestAPI({
+                authId: 'MAOGMYMDY2NDU1MDJMYM',
+                authToken: 'NTYyOGU0NGYyODVhZDk4NWM2NzM5NjYyMjEyNjg4'
+              });
+              var text;
+              if(req.user.username) {
+                text = req.user.username + " has invited you to this location ";
+              } else {
+                text = "You have been invited to this location ";
+              }
+              // text += link
+              text += " - Livv";
 
-        post.weight++;
-        if(post.tags.hasOwnProperty(element)) {
-          post.tags[element]++;
-        } else {
-          post.tags[element] = 1;
-        }
+              var params = {
+                'src': '13525592572', // Caller Id
+                'dst' : element.substring(1), // User Number to Call
+                'text' : text,
+                'type' : "sms",
+              };
 
-        if(post.tags[element] > post.topweight) {
-          post.topweight = post.tags[element];
-          post.toptag = element;
-        }
+              api.send_message(params, function (status, response) {
+                //TODO: LOGGING
+              });
 
-        if(!post.usertotag[user.phone]) {
-          post.usertotag[user.phone] = [element]; 
-        } else {
-          post.usertotag[user.phone].push(element);
-        }
-       }
+
+            } else {
+              // Push notification
+
+              var feed = {type: "invitation", tags: tags, host: req.user.phone, loc: req.body.loc, message: "Not implemented yet."};
+              if(user.feed) {
+                user.feed.push(feed);
+              } else {
+                user.feed = [feed];
+              }
+              user.markModified("feed");
+              user.save(function(err){
+                if (err) return validationError(res, err);
+              });
+
+            }
+          });
+        });
+      } else {
+
+        if(!_.contains(post.usertotag[user.phone],element)) {
+
+          post.weight++;
+          if(post.tags.hasOwnProperty(element)) {
+            post.tags[element]++;
+          } else {
+            post.tags[element] = 1;
+          }
+
+          if(post.tags[element] > post.topweight) {
+            post.topweight = post.tags[element];
+            post.toptag = element;
+          }
+
+          if(!post.usertotag[user.phone]) {
+            post.usertotag[user.phone] = [element]; 
+          } else {
+            post.usertotag[user.phone].push(element);
+          }
+         }
+     }
     });
 
-    if(post.toptag == "") return res.send(403)
+    if(post.toptag == "") return res.send(304);
     post.markModified("tags");
     post.markModified("usertotag");    
     post.save(function(err){
