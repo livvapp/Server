@@ -5,6 +5,7 @@ var Email = require('../email/email.model');
 var passport = require('passport');
 var config = require('../../config/environment');
 var jwt = require('jsonwebtoken');
+var _ = require('lodash');
 //var Tag = require('../tag/tag.model');
 
 var validationError = function(res, err) {
@@ -168,6 +169,19 @@ exports.username = function(req, res, next) {
 
 };
 
+exports.friends = function(req, res, next) {
+  
+  // Make sure each is string
+  var user = req.user;
+  if(!(req.body instanceof Array))  return res.send(403);
+  user.friends = _.uniq(req.body);
+  user.save(function(err){
+    if (err) return validationError(res, err);
+    return res.send(200);
+  });
+
+};
+
 exports.tag = function(req, res, next) {
   
   //ar query = User.where({phone: req.params.phone})
@@ -287,7 +301,7 @@ exports.feed = function(req, res, next) {
   }, '-salt -hashedPassword', function(err, user) { // don't ever give out the password or salt
     if (err) return next(err);
     if (!user) return res.send(401);
-    res.json({username:user.feed);
+    res.json({username:user.feed});
   });
 };
 

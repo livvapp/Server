@@ -3,7 +3,9 @@
 var _ = require('lodash');
 var Post = require('./post.model');
 var User = require('../user/user.model');
+var link = require('../link/link.model');
 var plivo = require('plivo');
+var uuid = require('node-uuid');
 
 
 exports.tags = function(req, res) {
@@ -23,6 +25,9 @@ exports.tags = function(req, res) {
 // Get list of ratings
 exports.index = function(req, res) {
 
+  var myfriends = req.user.friends;
+  if(!myfriends)  myfriends = [];
+  myfriends.push(req.user.phone);
 
   // Possibly use geoWithin centerSphere
   var query = {
@@ -46,7 +51,7 @@ exports.index = function(req, res) {
 
    // query.select("-usertotag -tagtouser");
 
-  Post.find(query,"-usertotag -_id -__ttl -__v", function (err, posts) {
+  Post.find(query,"-usertotag -_id -userpoints -__ttl -__v", function (err, posts) {
     if(err) { return handleError(res, err); }
     /*var tags = {};
     posts.forEach(function(element, index, array) {
@@ -58,8 +63,31 @@ exports.index = function(req, res) {
         }
       });
     });*/
-posts.push({address: "default", tags: {"Deltopia": 0, "I❤️ Vista": 0, "Dayger": 0, "Kickback": 0}, loc: {}, weight: 0});
-    return res.json(posts);
+    var newPosts = []
+    posts.forEach(function(element, index, array) {
+      var con = true;
+      if(element.toptag.charAt(0) == '#')
+        if(_.intersection(myfriends, element.tagtouser[element.toptag]).length == 0)
+          con = false;
+      if(con) {
+        var tmp = element;
+        _.forOwn(element.tags,function(value, key){
+          //console.log(element.tagtouser);
+          if(key.charAt(0) == '#') {
+            if(_.intersection(myfriends, element.tagtouser[key]).length == 0) {
+              tmp.tags[key] = undefined;
+              tmp.weight -= value;
+            }
+          }
+        });
+        if(tmp.weight > 0) {
+          tmp.tagtouser = undefined;  
+          newPosts.push(tmp);
+        }
+      }
+    });
+
+    return res.json(newPosts);
   });
 
 };
@@ -70,10 +98,13 @@ exports.create = function(req, res) {
   if(!req.body.hasOwnProperty("address")) return res.send(403);
   if(!req.body.hasOwnProperty("loc")) return res.send(403);
   if(!req.body.hasOwnProperty("tag")) return res.send(403);
+  if(!req.body.loc.hasOwnProperty("coordinates")) return res.send(403);
+  if(!req.body.loc.coordinates[0]) return res.send(403);
+  if(!req.body.loc.coordinates[1]) return res.send(403);
   if(!(req.body.tag instanceof Array)) return res.send(403);
   if(req.body.tag.length == 0)  return res.send(403);
   var query = Post.where({address: req.body.address});
-  var tags = _.uniq(req.body.tag);
+  var tags = req.body.tag;//_.uniq(req.body.tag);
   var user = req.user;
 
   query.findOne(function(err, post) {
@@ -82,13 +113,21 @@ exports.create = function(req, res) {
     if(!post) {
       req.body.tags = {};
       req.body.usertotag = {};
+      req.body.tagtouser = {};
+      req.body.userpoints = {};
       req.body.weight = 0;
       req.body.topweight = 0;
       req.body.toptag = "";
       post = Post(req.body);
     }
 
-    tags.forEach(function(element, index, array) {
+    if(!post.userpoints.hasOwnProperty(user.phone))
+      req.body.userpoints[user.phone] = 10;
+
+    post.userpoints[user.phone] -= tags.length;
+    if(post.userpoints[user.phone] < 0) return res.send(403);
+
+     tags.forEach(function(element, index, array) {
 
        if(typeof element == "string") {
          if(element.indexOf(".") != -1) {
@@ -124,12 +163,15 @@ exports.create = function(req, res) {
               });
               var text;
               if(req.user.username) {
-                text = req.user.username + " has invited you to this location ";
+                text = req.user.username + " has invited you to the following location: ";
               } else {
-                text = "You have been invited to this location ";
+                text = "You have been invited to the following location: ";
               }
               // text += link
-              text += " - Livv";
+              var alias = uuid.v4().substring(0,5);
+              //TODO: Deal with a collision
+              link.create({alias: alias, lat: req.body.loc.coordinates[1], lon: req.body.loc.coordinates[0]},function(err){ if(err, link) return handleError(res, err); });
+              text += "http://livv.net/m/" + alias + " - Livv";
 
               var params = {
                 'src': '13525592572', // Caller Id
@@ -146,7 +188,7 @@ exports.create = function(req, res) {
             } else {
               // Push notification
 
-              var feed = {type: "invitation", tags: tags, host: req.user.phone, loc: req.body.loc, message: "Not implemented yet."};
+              var feed = {type: "invitation", tags: tags, host: req.user.phone, loc: req.body.loc, message: "Message not implemented yet."};
               if(user.feed) {
                 user.feed.push(feed);
               } else {
@@ -162,32 +204,38 @@ exports.create = function(req, res) {
         });
       } else {
 
-        if(!_.contains(post.usertotag[user.phone],element)) {
 
-          post.weight++;
-          if(post.tags.hasOwnProperty(element)) {
-            post.tags[element]++;
-          } else {
-            post.tags[element] = 1;
-          }
+        post.weight++;
+        if(post.tags.hasOwnProperty(element)) {
+          post.tags[element]++;
+        } else {
+          post.tags[element] = 1;
+        }
 
-          if(post.tags[element] > post.topweight) {
-            post.topweight = post.tags[element];
-            post.toptag = element;
-          }
+        if(post.tags[element] > post.topweight) {
+          post.topweight = post.tags[element];
+          post.toptag = element;
+        }
 
-          if(!post.usertotag[user.phone]) {
-            post.usertotag[user.phone] = [element]; 
-          } else {
-            post.usertotag[user.phone].push(element);
-          }
-         }
+        if(!post.usertotag[user.phone]) {
+          post.usertotag[user.phone] = [element]; 
+        } else {
+          post.usertotag[user.phone].push(element);
+        }
+
+        if(!post.tagtouser[element]) {
+          post.tagtouser[element] = [user.phone]; 
+        } else {
+          post.tagtouser[element].push(user.phone);
+        }
      }
     });
 
     if(post.toptag == "") return res.send(304);
     post.markModified("tags");
-    post.markModified("usertotag");    
+    post.markModified("userpoints");
+    post.markModified("usertotag"); 
+    post.markModified("tagtouser");    
     post.save(function(err){
       if(err) { return handleError(res, err); }
       return res.send(200);
