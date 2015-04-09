@@ -225,13 +225,15 @@ exports.create = function(req, res) {
         if(!post.usertotag[user.phone]) {
           post.usertotag[user.phone] = [element]; 
         } else {
-          post.usertotag[user.phone].push(element);
+          if(!_.contains(post.usertotag[user.phone], element))
+            post.usertotag[user.phone].push(element);
         }
 
         if(!post.tagtouser[element]) {
           post.tagtouser[element] = [user.phone]; 
         } else {
-          post.tagtouser[element].push(user.phone);
+          if(!_.contains(post.tagtouser[element], user.phone))
+            post.tagtouser[element].push(user.phone);
         }
      }
     });
