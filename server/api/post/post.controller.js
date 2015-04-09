@@ -122,7 +122,7 @@ exports.create = function(req, res) {
     }
 
     if(!post.userpoints.hasOwnProperty(user.phone))
-      req.body.userpoints[user.phone] = 10;
+      req.body.userpoints[user.phone] = 10000000000;
 
     post.userpoints[user.phone] -= tags.length;
     if(post.userpoints[user.phone] < 0) return res.send(403);
@@ -157,33 +157,38 @@ exports.create = function(req, res) {
           query.findOne(function(err, user){
             if(err) { return handleError(res, err); }
             if(!user) {
-              var api = plivo.RestAPI({
-                authId: 'MAOGMYMDY2NDU1MDJMYM',
-                authToken: 'NTYyOGU0NGYyODVhZDk4NWM2NzM5NjYyMjEyNjg4'
-              });
-              var text;
-              if(req.user.username) {
-                text = req.user.username + " has invited you to the following location: ";
-              } else {
-                text = "You have been invited to the following location: ";
+              if(!_.contains(post.usertotag[req.user.phone],element)) {
+                if(post.usertotag.hasOwnProperty(req.user.phone))
+                  post.usertotag[req.user.phone].push(element);
+                else
+                  post.usertotag[req.user.phone] = [element];
+                var api = plivo.RestAPI({
+                  authId: 'MAOGMYMDY2NDU1MDJMYM',
+                  authToken: 'NTYyOGU0NGYyODVhZDk4NWM2NzM5NjYyMjEyNjg4'
+                });
+                var text;
+                if(req.user.username) {
+                  text = req.user.username + " has invited you to the following location: ";
+                } else {
+                  text = "You have been invited to the following location: ";
+                }
+                // text += link
+                var alias = uuid.v4().substring(0,5);
+                //TODO: Deal with a collision
+                link.create({alias: alias, lat: req.body.loc.coordinates[1], lon: req.body.loc.coordinates[0]},function(err){ if(err, link) return handleError(res, err); });
+                text += "http://livv.net/m/" + alias + " - Livv";
+
+                var params = {
+                  'src': '13525592572', // Caller Id
+                  'dst' : element.substring(1), // User Number to Call
+                  'text' : text,
+                  'type' : "sms",
+                };
+
+                api.send_message(params, function (status, response) {
+                  //TODO: LOGGING
+                });
               }
-              // text += link
-              var alias = uuid.v4().substring(0,5);
-              //TODO: Deal with a collision
-              link.create({alias: alias, lat: req.body.loc.coordinates[1], lon: req.body.loc.coordinates[0]},function(err){ if(err, link) return handleError(res, err); });
-              text += "http://livv.net/m/" + alias + " - Livv";
-
-              var params = {
-                'src': '13525592572', // Caller Id
-                'dst' : element.substring(1), // User Number to Call
-                'text' : text,
-                'type' : "sms",
-              };
-
-              api.send_message(params, function (status, response) {
-                //TODO: LOGGING
-              });
-
 
             } else {
               // Push notification
