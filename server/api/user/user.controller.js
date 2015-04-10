@@ -33,6 +33,7 @@ exports.create = function (req, res, next) {
   newUser.provider = 'local';
   newUser.role = 'user';
   newUser.active = false;
+  newUser.score = 20;
 
   if(req.body.hasOwnProperty("email")) {
     var query = Email.where({email: req.body.email});

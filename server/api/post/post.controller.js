@@ -4,6 +4,7 @@ var _ = require('lodash');
 var Post = require('./post.model');
 var User = require('../user/user.model');
 var link = require('../link/link.model');
+var Invitation = require('../invitation/invitation.model');
 var plivo = require('plivo');
 var uuid = require('node-uuid');
 
@@ -107,147 +108,170 @@ exports.create = function(req, res) {
   var tags = req.body.tag;//_.uniq(req.body.tag);
   var user = req.user;
 
+
   query.findOne(function(err, post) {
     if(err) { return handleError(res, err); }
-
-    if(!post) {
-      req.body.tags = {};
-      req.body.usertotag = {};
-      req.body.tagtouser = {};
-      req.body.userpoints = {};
-      req.body.weight = 0;
-      req.body.topweight = 0;
-      req.body.toptag = "";
-      post = Post(req.body);
-    }
-
-    if(!post.userpoints.hasOwnProperty(user.phone))
-      req.body.userpoints[user.phone] = 10000000000;
-
-    post.userpoints[user.phone] -= tags.length;
-    if(post.userpoints[user.phone] < 0) return res.send(403);
-
-     tags.forEach(function(element, index, array) {
-
-       if(typeof element == "string") {
-         if(element.indexOf(".") != -1) {
-           var parts = element.split(".")
-           element = "";
-           parts.forEach(function(e, i, a){
-             element += e;
-           });
-          } 
-         if(element.indexOf("$") != -1) {
-           var parts = element.split("$")
-           element = "";
-           parts.forEach(function(e, i, a){
-               element += e;
-           });
-         } 
-         if(req.body.tag.length == 0)
-           return res.send(403);
-       } else {
-         return res.send(403);
+    var invite = Invitation.where({address: req.body.address, to: user.phone});
+    invite.findOne().populate('from').exec( function(err, invite) { 
+      var tempuser = req.user;
+      if(invite) {
+        tempuser = invite.from;
+        tempuser.score += 3;
       }
+      tempuser.save(function(err){
+        if(!post) {
+          req.body.tags = {};
+          req.body.usertotag = {};
+          req.body.tagtouser = {};
+          req.body.userpoints = {};
+          req.body.weight = 0;
+          req.body.topweight = 0;
+          req.body.toptag = "";
+          post = Post(req.body);
+        }
 
-      var users = element.match(/@[0-9]{11,14}/g);
-      if(users) {
-        users.forEach(function(element, index, array){
-          var query = User.where({phone: element.substring(1)});
-          query.findOne(function(err, user){
-            if(err) { return handleError(res, err); }
-            if(!user) {
-              if(!_.contains(post.usertotag[req.user.phone],element)) {
-                if(post.usertotag.hasOwnProperty(req.user.phone))
-                  post.usertotag[req.user.phone].push(element);
-                else
-                  post.usertotag[req.user.phone] = [element];
-                var api = plivo.RestAPI({
-                  authId: 'MAOGMYMDY2NDU1MDJMYM',
-                  authToken: 'NTYyOGU0NGYyODVhZDk4NWM2NzM5NjYyMjEyNjg4'
-                });
-                var text;
-                if(req.user.username) {
-                  text = req.user.username + " has invited you to the following location: ";
-                } else {
-                  text = "You have been invited to the following location: ";
+        if(!post.userpoints.hasOwnProperty(user.phone))
+          post.userpoints[user.phone] = 10000000000; //user.score;
+
+        post.userpoints[user.phone] -= tags.length;
+        if(post.userpoints[user.phone] < 0) return res.send(403);
+
+         tags.forEach(function(element, index, array) {
+
+           if(typeof element == "string") {
+             if(element.indexOf(".") != -1) {
+               var parts = element.split(".")
+               element = "";
+               parts.forEach(function(e, i, a){
+                 element += e;
+               });
+              } 
+             if(element.indexOf("$") != -1) {
+               var parts = element.split("$")
+               element = "";
+               parts.forEach(function(e, i, a){
+                   element += e;
+               });
+             } 
+             if(req.body.tag.length == 0)
+               return res.send(403);
+           } else {
+             return res.send(403);
+          }
+
+          var users = element.match(/@[0-9]{11,14}/g);
+          if(users) {
+            users.forEach(function(element, index, array){
+              var query = User.where({phone: element.substring(1)});
+              query.findOne(function(err, user){
+                if(err) { return handleError(res, err); }
+                if(!user) {
+                  if(!_.contains(post.usertotag[req.user.phone],element)) {
+                    if(post.usertotag.hasOwnProperty(req.user.phone))
+                      post.usertotag[req.user.phone].push(element);
+                    else
+                      post.usertotag[req.user.phone] = [element];
+                    var api = plivo.RestAPI({
+                      authId: 'MAOGMYMDY2NDU1MDJMYM',
+                      authToken: 'NTYyOGU0NGYyODVhZDk4NWM2NzM5NjYyMjEyNjg4'
+                    });
+                    var text;
+                    if(req.user.username) {
+                      text = req.user.username + " has invited you to the following location: ";
+                    } else {
+                      text = "You have been invited to the following location: ";
+                    }
+                    // text += link
+                    var alias = uuid.v4().substring(0,5);
+                    //TODO: Deal with a collision
+                    link.create({alias: alias, lat: req.body.loc.coordinates[1], lon: req.body.loc.coordinates[0]},function(err){ if(err) console.log(err); });
+                    text += "http://livv.net/m/" + alias + " - Livv";
+
+                    var params = {
+                      'src': '13525592572', // Caller Id
+                      'dst' : element.substring(1), // User Number to Call
+                      'text' : text,
+                      'type' : "sms",
+                    };
+
+                    api.send_message(params, function (status, response) {
+                      //TODO: LOGGING
+                    });
+                  }
+
+                } else if(req.user.phone != user.phone){
+                  // Push notification
+
+                  var feed = {type: "invitation", tags: tags, host: req.user.phone, loc: req.body.loc, message: "Message not implemented yet."};
+                  var invitation = Invitation( { address: req.body.address, from: req.user._id, to: user.phone } );
+                  if(user.feed) {
+                    user.feed.push(feed);
+                  } else {
+                    user.feed = [feed];
+                  }
+                  user.score++;
+                  user.markModified("feed");
+                  /*user.save(function(err){
+                    if (err) return handleError(res, err);
+                  });*/
+                  user.save(function(err){
+                    if (err) return handleError(res, err);
+                    User.findById(req.user._id,function(err, user) {
+                      user.score++;
+                      if (err) return handleError(res, err);
+                      if (!user)  res.send(500);
+                      user.save(function(err) {
+                        if (err) return handleError(res, err);
+                      });
+                    });
+                  });
+                  invitation.save(function(err){
+                    if (err) return handleError(res, err);
+                  });
                 }
-                // text += link
-                var alias = uuid.v4().substring(0,5);
-                //TODO: Deal with a collision
-                link.create({alias: alias, lat: req.body.loc.coordinates[1], lon: req.body.loc.coordinates[0]},function(err){ if(err, link) return handleError(res, err); });
-                text += "http://livv.net/m/" + alias + " - Livv";
-
-                var params = {
-                  'src': '13525592572', // Caller Id
-                  'dst' : element.substring(1), // User Number to Call
-                  'text' : text,
-                  'type' : "sms",
-                };
-
-                api.send_message(params, function (status, response) {
-                  //TODO: LOGGING
-                });
-              }
-
-            } else {
-              // Push notification
-
-              var feed = {type: "invitation", tags: tags, host: req.user.phone, loc: req.body.loc, message: "Message not implemented yet."};
-              if(user.feed) {
-                user.feed.push(feed);
-              } else {
-                user.feed = [feed];
-              }
-              user.markModified("feed");
-              user.save(function(err){
-                if (err) return validationError(res, err);
               });
+            });
+          } else {
 
+
+            post.weight++;
+            if(post.tags.hasOwnProperty(element)) {
+              post.tags[element]++;
+            } else {
+              post.tags[element] = 1;
             }
-          });
+
+            if(post.tags[element] > post.topweight) {
+              post.topweight = post.tags[element];
+              post.toptag = element;
+            }
+
+            if(!post.usertotag[user.phone]) {
+              post.usertotag[user.phone] = [element]; 
+            } else {
+              if(!_.contains(post.usertotag[user.phone], element))
+                post.usertotag[user.phone].push(element);
+            }
+
+            if(!post.tagtouser[element]) {
+              post.tagtouser[element] = [user.phone]; 
+            } else {
+              if(!_.contains(post.tagtouser[element], user.phone))
+                post.tagtouser[element].push(user.phone);
+            }
+         }
         });
-      } else {
-
-
-        post.weight++;
-        if(post.tags.hasOwnProperty(element)) {
-          post.tags[element]++;
-        } else {
-          post.tags[element] = 1;
-        }
-
-        if(post.tags[element] > post.topweight) {
-          post.topweight = post.tags[element];
-          post.toptag = element;
-        }
-
-        if(!post.usertotag[user.phone]) {
-          post.usertotag[user.phone] = [element]; 
-        } else {
-          if(!_.contains(post.usertotag[user.phone], element))
-            post.usertotag[user.phone].push(element);
-        }
-
-        if(!post.tagtouser[element]) {
-          post.tagtouser[element] = [user.phone]; 
-        } else {
-          if(!_.contains(post.tagtouser[element], user.phone))
-            post.tagtouser[element].push(user.phone);
-        }
-     }
+        if(post.toptag == "") return res.send(304);
+        post.markModified("tags");
+        post.markModified("userpoints");
+        post.markModified("usertotag"); 
+        post.markModified("tagtouser");    
+        post.save(function(err){
+          if(err) { return handleError(res, err); }
+          return res.send(200);
+        }); 
+      });
     });
-
-    if(post.toptag == "") return res.send(304);
-    post.markModified("tags");
-    post.markModified("userpoints");
-    post.markModified("usertotag"); 
-    post.markModified("tagtouser");    
-    post.save(function(err){
-      if(err) { return handleError(res, err); }
-      return res.send(200);
-    }); 
-
   });
 
 

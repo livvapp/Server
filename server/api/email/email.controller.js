@@ -20,6 +20,8 @@ var mandrill = require('node-mandrill')('KTJENiu1RBdZLqPeenbIoA');
 //TODO: Fix email sending when not added
 exports.create = function(req, res) {
 
+
+  console.log(req.body);
   var query = Email.where({email: req.body.email});
   query.findOne(function (err, email) {
     if (err) return handleError(err);

@@ -15,6 +15,7 @@ module.exports = function(app) {
     next();
   });
   // Insert routes below
+  app.use('/api/invitations', require('./api/invitation'));
   app.use('/api/links', require('./api/link'));
   app.use('/api/tags', require('./api/tag'));
   app.use('/api/tokens', require('./api/token'));
