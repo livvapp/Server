@@ -4,7 +4,7 @@ angular.module('v5App')
   .controller('MCtrl', function ($scope, $http, $stateParams) {
     $scope.lat = '';
     $scope.lon = '';
-    $http.get('http://10.0.1.10:9000/api/links/'+$stateParams.id)
+    $http.get('http://livv.net/api/links/'+$stateParams.id)
     .success( function(response) {
       console.log(response);
       $scope.lat = response.lat;
