@@ -2,6 +2,7 @@
 
 var _ = require('lodash');
 var Email = require('./email.model');
+var User = require('../user/user.model');
 var nodemailer = require('nodemailer');
 //var sesTransport = require('nodemailer-ses-transport');
 var mandrill = require('node-mandrill')('KTJENiu1RBdZLqPeenbIoA');
@@ -11,13 +12,12 @@ var mandrill = require('node-mandrill')('KTJENiu1RBdZLqPeenbIoA');
 //TODO: Fix email sending when not added
 exports.create = function(req, res) {
 
-
   console.log(req.body);
   var query = Email.where({email: req.body.email});
   query.findOne(function (err, email) {
     if (err) return handleError(req, res, err);
 
-    var code = Math.round(Math.random()*10).toString() + Math.round(Math.random()*10).toString() + Math.round(Math.random()*10).toString();
+    var code = Math.round(Math.random()*10).toString()[0] + Math.round(Math.random()*10).toString()[0] + Math.round(Math.random()*10).toString()[0];
 
     var sub = code + " - Your Livv Activation Code!";
     var bod = "Please enter this three digit code to confirm your email: " + code;
@@ -32,30 +32,36 @@ exports.create = function(req, res) {
         }
     }, function(error, response) { });
 
+    var user = User.where({email: req.body.email});
+    user.findOne(function(err, user){
+      if(!user) {
+        if (!email) {
 
-    if (!email) {
+          var emailobj = req.body;
+          emailobj.verified = false;
+          emailobj.code = code;
 
-      var emailobj = req.body;
-      emailobj.verified = false;
-      emailobj.code = code;
+          Email.create(emailobj, function(err, email) {
+            if(err) { return handleError(req, res, err); }
+            return res.sendStatus(201);
+          });
+        } else if (email.verified == true) {
+          return res.sendStatus(304);
+        } else {
 
-      Email.create(emailobj, function(err, email) {
-        if(err) { return handleError(req, res, err); }
-        return res.sendStatus(201);
-      });
-    } else if (email.verified == true) {
-      return res.sendStatus(304);
-    } else {
+          var emailobj = email;
+          emailobj.verified = false;
+          emailobj.code = code;
 
-      var emailobj = email;
-      emailobj.verified = false;
-      emailobj.code = code;
-
-      emailobj.save(function (err) {
-        if (err) { return handleError(req, res, err); }
-        return res.sendStatus(200);
-      });
-    }
+          emailobj.save(function (err) {
+            if (err) { return handleError(req, res, err); }
+            return res.sendStatus(200);
+          });
+        }
+      } else {
+        return res.sendStatus(403);
+      }
+    });
   });
 };
 
@@ -63,7 +69,7 @@ exports.create = function(req, res) {
 exports.update = function(req, res) {
   if(req.body._id) { delete req.body._id; }
   
-  var query = Email.where({email: req.query.email});
+  var query = Email.where({email: req.params.email});
   query.findOne(function (err, email) {
     if (err) { return handleError(req, res, err); }
     if (!email) { return res.sendStatus(404); }
@@ -83,7 +89,7 @@ exports.update = function(req, res) {
 // Deletes a email from the DB.
 exports.destroy = function(req, res) {
 
-  var query = Email.where({email: req.query.email});
+  var query = Email.where({email: req.params.email});
 
   query.findOne(function (err, email) {
     if(err) { return handleError(req, res, err); }

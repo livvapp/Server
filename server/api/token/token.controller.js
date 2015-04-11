@@ -88,7 +88,7 @@ function handleError(req, res, err) {
   });
 
   var error = {err: err}
-  if(req.user)  error.user = req.user.phone
+  if(req.user)  error.user = user.phone;
   logger.log(error);
 
   return res.status(500).json(err);

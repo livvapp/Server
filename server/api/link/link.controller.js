@@ -5,7 +5,7 @@ var Link_ = require('./link.model');
 
 // Get a single link
 exports.show = function(req, res) {
-  Link_.findOne({alias: req.query.id}, function (err, link) {
+  Link_.findOne({alias: req.params.id}, function (err, link) {
     if(err) { return handleError(req, res, err); }
     if(!link) { return res.sendStatus(404); }
     return res.json(link);

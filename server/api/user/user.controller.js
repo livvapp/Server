@@ -40,63 +40,65 @@ exports.create = function (req, res, next) {
   if(req.body.hasOwnProperty("email")) {
     var query = Email.where({email: req.body.email});
     query.findOne(function (err, email) {
-      if(err) { return ValidationError(res, err); }
+      if(err) { return validationError(req, res, err); }
       if(!email) { return validationError(req, res,{error:"Email has not been verified."}); }
       if(email.verified == false) {
-        return validationError(res,{error:"Email has not been verified."});
+        return validationError(req, res,{error:"Email has not been verified."});
       }
-      
-      var api = plivo.RestAPI({
-        authId: 'MAOGMYMDY2NDU1MDJMYM',
-        authToken: 'NTYyOGU0NGYyODVhZDk4NWM2NzM5NjYyMjEyNjg4'
-      });
-
-      var code = Math.round(Math.random()*1000);
-      while(code < 100) code *= 10;
-      newUser.code = code;
-
-      var codeText = code.toString() + " - Your Livv Activation Code!"
-
-      var params = {
-        'src': '13525592572', // Caller Id
-        'dst' : newUser.phone, // User Number to Call
-        'text' : codeText,
-        'type' : "sms",
-      };
-
-      api.send_message(params, function (status, response) {
-        //TODO: LOGGING
-      });
-
-
-      //console.log("wtf");
-      //console.log(email.email);
       var users = User.where({email: email.email});
       users.findOne(function(err, user){
-        if(err) return validationError(res,err);
-        if(!user) {
-          User.create(newUser, function(err, user) {
-            if (err) return validationError(res, err);
-            var token = jwt.sign({_id: user._id }, config.secrets.session);
-            res.json({ token: token });
-          });
-        } else {
-          //console.log(user.email);
-          user.code = newUser.code;
-          user.save(function(err, user) {
-            if (err) return validationError(res, err);
-            var token = jwt.sign({_id: user._id }, config.secrets.session);
-            res.json({ token: token });
-          });
-        }
+        var pusers = User.where({phone: newUser.phone});
+        pusers.findOne(function(err, puser){
+          if(err) return validationError(req,res,err);
+          if(!(puser && puser.active)) {
+            var api = plivo.RestAPI({
+              authId: 'MAOGMYMDY2NDU1MDJMYM',
+              authToken: 'NTYyOGU0NGYyODVhZDk4NWM2NzM5NjYyMjEyNjg4'
+            });
+
+            var code = Math.round(Math.random()*10).toString()[0] + Math.round(Math.random()*10).toString()[0] + Math.round(Math.random()*10).toString()[0];
+            newUser.code = code;
+
+            var codeText = code + " - Your Livv Activation Code!"
+
+            var params = {
+              'src': '13525592572', // Caller Id
+              'dst' : newUser.phone, // User Number to Call
+              'text' : codeText,
+              'type' : "sms",
+            };
+
+            api.send_message(params, function (status, response) {
+              //TODO: LOGGING
+            });
+            if(!user) {
+              User.create(newUser, function(err, user) {
+                if (err) return validationError(req, res, err);
+                var token = jwt.sign({_id: user._id }, config.secrets.session);
+                res.json({ token: token });
+              });
+            } else {
+              //console.log(user.email);
+              user.code = newUser.code;
+              user.save(function(err, user) {
+                if (err) return validationError(req, res, err);
+                var token = jwt.sign({_id: user._id }, config.secrets.session);
+                res.json({ token: token });
+              });
+            }
+          } else {
+            return validationError(req, res,{error:"Phone already exists."});
+          }
+        });
       });
     });
-  } else {
+  };
+}/* else {
     next = false;
     return validationError(res,{error:"Email required at this time."});
   }
 
-};
+}*/;
 
 /**
  * Set Username
@@ -134,7 +136,7 @@ exports.username = function(req, res, next) {
     }
     user.username = req.body.username;
     user.save(function(err) {
-      if (err) return validationError(res, err);
+      if (err) return validationError(req, res, err);
       return res.sendStatus(200);
     });
   });
@@ -148,7 +150,7 @@ exports.friends = function(req, res, next) {
   if(!(req.body instanceof Array))  return res.sendStatus(403);
   user.friends = _.uniq(req.body);
   user.save(function(err){
-    if (err) return validationError(res, err);
+    if (err) return validationError(req, res, err);
     return res.sendStatus(200);
   });
 
@@ -159,16 +161,16 @@ exports.friends = function(req, res, next) {
  */
 exports.activate = function(req, res, next) {
 
-  var query = User.where({phone: req.query.phone})
+  var query = User.where({phone: req.params.phone})
 
   query.findOne(function (err, user) {
     if (err) return next(err);
     if (!user) return res.sendStatus(401);
-    if(user.code == Number(req.get('code'))) {
+    if(user.code == req.get('code')) {
       user.active = true;
       user.code = undefined;
       user.save(function(err) {
-        if (err) return validationError(res, err);
+        if (err) return validationError(req, res, err);
         res.sendStatus(200);
       });
     } else {
