@@ -19,7 +19,7 @@ var UserSchema = new Schema({
   friends: [String],
   hashedPassword: String,
   provider: String,
-  score: Number,
+  score: {type: Number, default: 19},
   salt: String
 });
 

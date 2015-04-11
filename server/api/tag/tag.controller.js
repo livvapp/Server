@@ -7,7 +7,7 @@ var Tag = require('./tag.model');
 exports.index = function(req, res) {
   Tag.find(function (err, tags) {
     if(err) { return handleError(res, err); }
-    return res.json(200, tags);
+    return res.status(200).json(tags);
   });
 };
 

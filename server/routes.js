@@ -14,6 +14,12 @@ module.exports = function(app) {
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
   });
+
+ app.use(function (req, res, next) {
+  console.log('Req:', req.body);
+  //console.log('Res:', res);
+  next();
+});
   // Insert routes below
   app.use('/api/invitations', require('./api/invitation'));
   app.use('/api/links', require('./api/link'));

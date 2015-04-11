@@ -50,10 +50,10 @@ exports.create = function(req, res) {
 
       Email.create(emailobj, function(err, email) {
         if(err) { return handleError(res, err); }
-        return res.send(201);
+        return res.sendStatus(201);
       });
     } else if (email.verified == true) {
-      return res.send(304);
+      return res.sendStatus(304);
     } else {
 
       var emailobj = email;
@@ -62,7 +62,7 @@ exports.create = function(req, res) {
 
       emailobj.save(function (err) {
         if (err) { return handleError(res, err); }
-        return res.send(200);
+        return res.sendStatus(200);
       });
     }
   });
@@ -72,10 +72,10 @@ exports.create = function(req, res) {
 exports.update = function(req, res) {
   if(req.body._id) { delete req.body._id; }
   
-  var query = Email.where({email: req.params.email});
+  var query = Email.where({email: req.query.email});
   query.findOne(function (err, email) {
     if (err) { return handleError(res, err); }
-    if (!email) { return res.send(404); }
+    if (!email) { return res.sendStatus(404); }
     if (req.get("code") == email.code && email.verified == false) {
       var address = email.email;
       var updated = _.merge(email, req.body);
@@ -83,32 +83,32 @@ exports.update = function(req, res) {
       // updated.resetTTL();//TODO: remove this line
       updated.save(function (err) {
         if (err) { return handleError(res, err); }
-        return res.send(200);
+        return res.sendStatus(200);
       });
-    } else return res.send(304);
+    } else return res.sendStatus(304);
   });
 };
 
 // Deletes a email from the DB.
 exports.destroy = function(req, res) {
 
-  var query = Email.where({email: req.params.email});
+  var query = Email.where({email: req.query.email});
 
   query.findOne(function (err, email) {
     if(err) { return handleError(res, err); }
-    if(!email) { return res.send(404); }
+    if(!email) { return res.sendStatus(404); }
     //TODO: Take this out
       if(email.verified == false) {
         email.remove(function(err) {
           if(err) { return handleError(res, err); }
-          return res.send(204);
+          return res.sendStatus(204);
         });
       } else {
-        return res.send(401);
+        return res.sendStatus(401);
       }
   });
 };
 
 function handleError(res, err) {
-  return res.send(500, err);
+  return res.sendStatus(500, err);
 }

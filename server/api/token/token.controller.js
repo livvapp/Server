@@ -12,7 +12,7 @@ exports.create = function(req, res) {
 
   query.findOne(function (err, user) {
     if (err) return next(err);
-    if (!user) return res.send(401);
+    if (!user) return res.sendStatus(401);
 
     var tokens = Token.where({phone: req.body.phone});
     tokens.findOne(function(err, tok){
@@ -42,7 +42,7 @@ exports.create = function(req, res) {
 
         Token.create(req.body, function(err, token) {
           if(err) { return handleError(res, err); }
-          return res.send(201);
+          return res.sendStatus(201);
         });
       } else {
         var api = plivo.RestAPI({
@@ -69,7 +69,7 @@ exports.create = function(req, res) {
 
         tok.save(function(err, token) {
           if(err) { return handleError(res, err); }
-          return res.send(201);
+          return res.sendStatus(201);
         });
       }
     });
@@ -78,5 +78,5 @@ exports.create = function(req, res) {
 
 
 function handleError(res, err) {
-  return res.send(500, err);
+  return res.sendStatus(500, err);
 }

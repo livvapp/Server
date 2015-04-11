@@ -9,7 +9,7 @@ var _ = require('lodash');
 //var Tag = require('../tag/tag.model');
 
 var validationError = function(res, err) {
-  return res.json(422, err);
+  return res.status(422).json(err);
 };
 
 /**
@@ -18,8 +18,8 @@ var validationError = function(res, err) {
  */
 exports.index = function(req, res) {
   User.find({}, '-salt -hashedPassword', function (err, users) {
-    if(err) return res.send(500, err);
-    res.json(200, users);
+    if(err) return res.status(500).send(err);
+    res.status(200).json(users);
   });
 };
 
@@ -33,7 +33,7 @@ exports.create = function (req, res, next) {
   newUser.provider = 'local';
   newUser.role = 'user';
   newUser.active = false;
-  newUser.score = 20;
+  newUser.score = 19;
 
   if(req.body.hasOwnProperty("email")) {
     var query = Email.where({email: req.body.email});
@@ -100,11 +100,11 @@ exports.create = function (req, res, next) {
  * Get a single user
  */
 exports.show = function (req, res, next) {
-  var userId = req.params.id;
+  var userId = req.query.id;
 
   User.findById(userId, function (err, user) {
     if (err) return next(err);
-    if (!user) return res.send(401);
+    if (!user) return res.sendStatus(401);
     res.json(user.profile);
   });
 };
@@ -115,8 +115,8 @@ exports.show = function (req, res, next) {
  */
 exports.destroy = function(req, res) {
   User.findByIdAndRemove(req.params.id, function(err, user) {
-    if(err) return res.send(500, err);
-    return res.send(204);
+    if(err) return res.status(500).send(err);
+    return res.sendStatus(204);
   });
 };
 
@@ -144,27 +144,20 @@ exports.username = function(req, res, next) {
         });
       } 
       if(req.body.username.length == 0)
-        return res.send(403);
+        return res.sendStatus(403);
     }
   }
 
   User.findById(userId, function (err, user) {
     if (err) return next(err);
-    if (!user) return res.send(401);
+    if (!user) return res.sendStatus(401);
     if(!req.body.username) {
-      return res.send(403);
+      return res.sendStatus(403);
     }
-
-    var usernames = User.where({username: req.body.username})
-    usernames.findOne(function(err, username){
-      if (err) return next(err);
-      if (username) return res.send(400);
-
-      user.username = req.body.username;
-      user.save(function(err) {
-        if (err) return validationError(res, err);
-        return res.send(200);
-      });
+    user.username = req.body.username;
+    user.save(function(err) {
+      if (err) return validationError(res, err);
+      return res.sendStatus(200);
     });
   });
 
@@ -174,11 +167,11 @@ exports.friends = function(req, res, next) {
   
   // Make sure each is string
   var user = req.user;
-  if(!(req.body instanceof Array))  return res.send(403);
+  if(!(req.body instanceof Array))  return res.sendStatus(403);
   user.friends = _.uniq(req.body);
   user.save(function(err){
     if (err) return validationError(res, err);
-    return res.send(200);
+    return res.sendStatus(200);
   });
 
 };
@@ -187,13 +180,13 @@ exports.tag = function(req, res, next) {
   
   //ar query = User.where({phone: req.params.phone})
   /*var userId = req.user._id;
-  if(!req.body.tag) return res.send(403);
+  if(!req.body.tag) return res.sendStatus(403);
 
   User.findById(userId, function (err, user) {
     if (err) return next(err);
-    if (!user) return res.send(401);
+    if (!user) return res.sendStatus(401);
     if(!user.username) {
-      return res.send(403);
+      return res.sendStatus(403);
     }
     var redis = require("redis"), client = redis.createClient();
     client.on("error", function (err) {
@@ -207,7 +200,7 @@ exports.tag = function(req, res, next) {
       return res.json({rank: response+1});
     });
   });*/
-  return res.send(501);
+  return res.sendStatus(501);
 
 };
 
@@ -216,20 +209,20 @@ exports.tag = function(req, res, next) {
  */
 exports.activate = function(req, res, next) {
 
-  var query = User.where({phone: req.params.phone})
+  var query = User.where({phone: req.query.phone})
 
   query.findOne(function (err, user) {
     if (err) return next(err);
-    if (!user) return res.send(401);
+    if (!user) return res.sendStatus(401);
     if(user.code == Number(req.get('code'))) {
       user.active = true;
       user.code = undefined;
       user.save(function(err) {
         if (err) return validationError(res, err);
-        res.send(200);
+        res.sendStatus(200);
       });
     } else {
-      res.send(403);
+      res.sendStatus(403);
     }
   });
 };
@@ -240,11 +233,11 @@ exports.activate = function(req, res, next) {
 exports.resend = function(req, res, next) {
   var plivo = require('plivo');
 
-  var query = User.where({phone: req.params.phone})
+  var query = User.where({phone: req.query.phone})
 
   query.findOne(function (err, user) {
     if (err) { return handleError(res, err); }
-    if (!user) { return res.send(404); }
+    if (!user) { return res.sendStatus(404); }
     if(user.active == false){
       var updated = user;
 
@@ -275,9 +268,9 @@ exports.resend = function(req, res, next) {
 
       updated.save(function (err) {
         if (err) { return handleError(res, err); }
-        return res.send(200);
+        return res.sendStatus(200);
       });
-    } else return res.send(304);
+    } else return res.sendStatus(304);
   });
 };
 
@@ -290,7 +283,7 @@ exports.me = function(req, res, next) {
     _id: userId
   }, '-salt -hashedPassword', function(err, user) { // don't ever give out the password or salt
     if (err) return next(err);
-    if (!user) return res.send(401);
+    if (!user) return res.sendStatus(401);
     res.json({username:user.username});
   });
 };
@@ -301,8 +294,19 @@ exports.feed = function(req, res, next) {
     _id: userId
   }, '-salt -hashedPassword', function(err, user) { // don't ever give out the password or salt
     if (err) return next(err);
-    if (!user) return res.send(401);
-    res.json({username:user.feed});
+    if (!user) return res.sendStatus(401);
+    res.json({feed:user.feed});
+  });
+};
+
+exports.score = function(req, res, next) {
+  var userId = req.user._id;
+  User.findOne({
+    _id: userId
+  }, '-salt -hashedPassword', function(err, user) { // don't ever give out the password or salt
+    if (err) return next(err);
+    if (!user) return res.sendStatus(401);
+    res.json({score:user.score});
   });
 };
 
