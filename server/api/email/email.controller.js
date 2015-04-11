@@ -6,15 +6,6 @@ var nodemailer = require('nodemailer');
 //var sesTransport = require('nodemailer-ses-transport');
 var mandrill = require('node-mandrill')('KTJENiu1RBdZLqPeenbIoA');
 
-// Get list of emails
-// TODO: GET RID OF THIS!!!!!!!!
-/*exports.index = function(req, res) {
-  Email.find(function (err, emails) {
-    if(err) { return handleError(res, err); }
-    return res.json(200, emails);
-  });
-};*/
-
 // Creates a new email in the DB.
 
 //TODO: Fix email sending when not added
@@ -24,7 +15,7 @@ exports.create = function(req, res) {
   console.log(req.body);
   var query = Email.where({email: req.body.email});
   query.findOne(function (err, email) {
-    if (err) return handleError(err);
+    if (err) return handleError(req, res, err);
 
     var code = Math.round(Math.random()*10).toString() + Math.round(Math.random()*10).toString() + Math.round(Math.random()*10).toString();
 
@@ -49,7 +40,7 @@ exports.create = function(req, res) {
       emailobj.code = code;
 
       Email.create(emailobj, function(err, email) {
-        if(err) { return handleError(res, err); }
+        if(err) { return handleError(req, res, err); }
         return res.sendStatus(201);
       });
     } else if (email.verified == true) {
@@ -61,7 +52,7 @@ exports.create = function(req, res) {
       emailobj.code = code;
 
       emailobj.save(function (err) {
-        if (err) { return handleError(res, err); }
+        if (err) { return handleError(req, res, err); }
         return res.sendStatus(200);
       });
     }
@@ -74,7 +65,7 @@ exports.update = function(req, res) {
   
   var query = Email.where({email: req.query.email});
   query.findOne(function (err, email) {
-    if (err) { return handleError(res, err); }
+    if (err) { return handleError(req, res, err); }
     if (!email) { return res.sendStatus(404); }
     if (req.get("code") == email.code && email.verified == false) {
       var address = email.email;
@@ -82,7 +73,7 @@ exports.update = function(req, res) {
       updated.email = address;
       // updated.resetTTL();//TODO: remove this line
       updated.save(function (err) {
-        if (err) { return handleError(res, err); }
+        if (err) { return handleError(req, res, err); }
         return res.sendStatus(200);
       });
     } else return res.sendStatus(304);
@@ -95,12 +86,12 @@ exports.destroy = function(req, res) {
   var query = Email.where({email: req.query.email});
 
   query.findOne(function (err, email) {
-    if(err) { return handleError(res, err); }
+    if(err) { return handleError(req, res, err); }
     if(!email) { return res.sendStatus(404); }
     //TODO: Take this out
       if(email.verified == false) {
         email.remove(function(err) {
-          if(err) { return handleError(res, err); }
+          if(err) { return handleError(req, res, err); }
           return res.sendStatus(204);
         });
       } else {
@@ -109,6 +100,19 @@ exports.destroy = function(req, res) {
   });
 };
 
-function handleError(res, err) {
-  return res.sendStatus(500, err);
+function handleError(req, res, err) {
+  var loggly = require('loggly');
+ 
+  var logger = loggly.createClient({
+    token: "3b05e407-4548-47ca-bc35-69696794ea62",
+    subdomain: "livv",
+    tags: ["NodeJS"],
+    json:true
+  });
+
+  var error = {err: err}
+  if(req.user)  error.user = req.user.phone
+  logger.log(error);
+
+  return res.status(500).json(err);
 }

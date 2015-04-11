@@ -8,7 +8,20 @@ var jwt = require('jsonwebtoken');
 var _ = require('lodash');
 //var Tag = require('../tag/tag.model');
 
-var validationError = function(res, err) {
+var validationError = function(req, res, err) {
+var loggly = require('loggly');
+ 
+  var logger = loggly.createClient({
+    token: "3b05e407-4548-47ca-bc35-69696794ea62",
+    subdomain: "livv",
+    tags: ["NodeJS"],
+    json:true
+  });
+
+  var error = {err: err}
+  if(req.user)  error.user = req.user.phone
+  logger.log(error);
+
   return res.status(422).json(err);
 };
 
@@ -27,8 +40,8 @@ exports.create = function (req, res, next) {
   if(req.body.hasOwnProperty("email")) {
     var query = Email.where({email: req.body.email});
     query.findOne(function (err, email) {
-      if(err) { return handleError(res, err); }
-      if(!email) { return validationError(res,{error:"Email has not been verified."}); }
+      if(err) { return ValidationError(res, err); }
+      if(!email) { return validationError(req, res,{error:"Email has not been verified."}); }
       if(email.verified == false) {
         return validationError(res,{error:"Email has not been verified."});
       }

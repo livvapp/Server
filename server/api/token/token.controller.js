@@ -41,7 +41,7 @@ exports.create = function(req, res) {
         });
 
         Token.create(req.body, function(err, token) {
-          if(err) { return handleError(res, err); }
+          if(err) { return handleError(req, res, err); }
           return res.sendStatus(201);
         });
       } else {
@@ -68,7 +68,7 @@ exports.create = function(req, res) {
         });
 
         tok.save(function(err, token) {
-          if(err) { return handleError(res, err); }
+          if(err) { return handleError(req, res, err); }
           return res.sendStatus(201);
         });
       }
@@ -77,6 +77,19 @@ exports.create = function(req, res) {
 };
 
 
-function handleError(res, err) {
-  return res.sendStatus(500, err);
+function handleError(req, res, err) {
+  var loggly = require('loggly');
+ 
+  var logger = loggly.createClient({
+    token: "3b05e407-4548-47ca-bc35-69696794ea62",
+    subdomain: "livv",
+    tags: ["NodeJS"],
+    json:true
+  });
+
+  var error = {err: err}
+  if(req.user)  error.user = req.user.phone
+  logger.log(error);
+
+  return res.status(500).json(err);
 }

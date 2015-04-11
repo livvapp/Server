@@ -16,7 +16,7 @@ exports.tags = function(req, res) {
   if(!req.get("address")) return res.sendStatus(403);
   var query = Post.where({address: req.get("address")});
   query.findOne( function(err, post) {
-    if(err) { return handleError(res, err); }
+    if(err) { return handleError(req, res, err); }
     if(!post) { return res.sendStatus(404); }
     return res.json({list: post.usertotag[req.user.phone]});
   });
@@ -53,7 +53,7 @@ exports.index = function(req, res) {
    // query.select("-usertotag -tagtouser");
 
   Post.find(query,"-usertotag -_id -userpoints -__ttl -__v", function (err, posts) {
-    if(err) { return handleError(res, err); }
+    if(err) { return handleError(req, res, err); }
     /*var tags = {};
     posts.forEach(function(element, index, array) {
       element.tags.forEach(function(el, i, arr){
@@ -110,7 +110,7 @@ exports.create = function(req, res) {
 
 
   query.findOne(function(err, post) {
-    if(err) { return handleError(res, err); }
+    if(err) { return handleError(req, res, err); }
     var invite = Invitation.where({address: req.body.address, to: user.phone});
     invite.findOne().populate('from').exec( function(err, invite) { 
       var tempuser = req.user;
@@ -166,7 +166,7 @@ exports.create = function(req, res) {
             users.forEach(function(element, index, array){
               var query = User.where({phone: element.substring(1)});
               query.findOne(function(err, user){
-                if(err) { return handleError(res, err); }
+                if(err) { return handleError(req, res, err); }
                 if(!user) {
                   if(!_.contains(post.usertotag[req.user.phone],element)) {
                     if(post.usertotag.hasOwnProperty(req.user.phone))
@@ -214,7 +214,7 @@ exports.create = function(req, res) {
                   user.score++;
                   user.markModified("feed");
                   /*user.save(function(err){
-                    if (err) return handleError(res, err);
+                    if (err) return handleError(req, res, err);
                   });*/
                   user.save(function(err){
                     if (err) console.log(err);
@@ -270,7 +270,7 @@ exports.create = function(req, res) {
         post.markModified("usertotag"); 
         post.markModified("tagtouser");    
         post.save(function(err){
-          if(err) { return handleError(res, err); }
+          if(err) { return handleError(req, res, err); }
           return res.sendStatus(200);
         }); 
       });
@@ -281,8 +281,20 @@ exports.create = function(req, res) {
 
 };
 
-function handleError(res, err) {
-  return res.sendStatus(500, err);
+function handleError(req, res, err) {
+  var loggly = require('loggly');
+ 
+  var logger = loggly.createClient({
+    token: "3b05e407-4548-47ca-bc35-69696794ea62",
+    subdomain: "livv",
+    tags: ["NodeJS"],
+    json:true
+  });
+
+  var error = {err: err}
+  if(req.user)  error.user = req.user.phone
+  logger.log(error);
+  return res.status(500).json(err);
 }
 
 exports.authCallback = function(req, res, next) {
