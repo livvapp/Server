@@ -13,17 +13,6 @@ var validationError = function(res, err) {
 };
 
 /**
- * Get list of users
- * restriction: 'admin'
- */
-exports.index = function(req, res) {
-  User.find({}, '-salt -hashedPassword', function (err, users) {
-    if(err) return res.status(500).send(err);
-    res.status(200).json(users);
-  });
-};
-
-/**
  * Creates a new user
  * TODO: Fix potential bug with database access query.findOne...
  */
@@ -97,30 +86,6 @@ exports.create = function (req, res, next) {
 };
 
 /**
- * Get a single user
- */
-exports.show = function (req, res, next) {
-  var userId = req.query.id;
-
-  User.findById(userId, function (err, user) {
-    if (err) return next(err);
-    if (!user) return res.sendStatus(401);
-    res.json(user.profile);
-  });
-};
-
-/**
- * Deletes a user
- * restriction: 'admin'
- */
-exports.destroy = function(req, res) {
-  User.findByIdAndRemove(req.params.id, function(err, user) {
-    if(err) return res.status(500).send(err);
-    return res.sendStatus(204);
-  });
-};
-
-/**
  * Set Username
  */
 exports.username = function(req, res, next) {
@@ -176,34 +141,6 @@ exports.friends = function(req, res, next) {
 
 };
 
-exports.tag = function(req, res, next) {
-  
-  //ar query = User.where({phone: req.params.phone})
-  /*var userId = req.user._id;
-  if(!req.body.tag) return res.sendStatus(403);
-
-  User.findById(userId, function (err, user) {
-    if (err) return next(err);
-    if (!user) return res.sendStatus(401);
-    if(!user.username) {
-      return res.sendStatus(403);
-    }
-    var redis = require("redis"), client = redis.createClient();
-    client.on("error", function (err) {
-        return handleError(res, err);
-    });
-
-    var args1 = [ req.body.tag, user.username ];
-    client.zrevrank(args1, function (err, response) {
-      if (err) { return handleError(res, err); }
-      client.quit();
-      return res.json({rank: response+1});
-    });
-  });*/
-  return res.sendStatus(501);
-
-};
-
 /**
  * Activate an account by confirming the phone number
  */
@@ -224,53 +161,6 @@ exports.activate = function(req, res, next) {
     } else {
       res.sendStatus(403);
     }
-  });
-};
-
-/**
- * Resend text message
- */
-exports.resend = function(req, res, next) {
-  var plivo = require('plivo');
-
-  var query = User.where({phone: req.query.phone})
-
-  query.findOne(function (err, user) {
-    if (err) { return handleError(res, err); }
-    if (!user) { return res.sendStatus(404); }
-    if(user.active == false){
-      var updated = user;
-
-      if(req.body.phone)  updated.phone = req.body.phone;
-      
-      var api = plivo.RestAPI({
-        authId: 'MAOGMYMDY2NDU1MDJMYM',
-        authToken: 'NTYyOGU0NGYyODVhZDk4NWM2NzM5NjYyMjEyNjg4'
-      });
-
-      var code = Math.round(Math.random()*1000);
-      while(code < 100) code *= 10;
-
-      var codeText = code.toString() + " - Your Pleeb Activation Code!"
-
-      var params = {
-        'src': '13525592572', // Caller Id
-        'dst' : updated.phone, // User Number to Call
-        'text' : codeText,
-        'type' : "sms",
-      };
-
-      api.send_message(params, function (status, response) {
-        //TODO: LOGGING
-      });
-
-      updated.code = code;
-
-      updated.save(function (err) {
-        if (err) { return handleError(res, err); }
-        return res.sendStatus(200);
-      });
-    } else return res.sendStatus(304);
   });
 };
 
