@@ -12,6 +12,7 @@ var PostSchema = new Schema({
   topweight: Number,
   weight: Number,
   invitees: [String],
+  score: Number, //just for returning
   shares: Schema.Types.Mixed,
   tagtouser: Schema.Types.Mixed,
   userpoints: Schema.Types.Mixed,

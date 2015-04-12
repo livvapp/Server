@@ -86,25 +86,7 @@ exports.update = function(req, res) {
   });
 };
 
-// Deletes a email from the DB.
-exports.destroy = function(req, res) {
 
-  var query = Email.where({email: req.params.email});
-
-  query.findOne(function (err, email) {
-    if(err) { return handleError(req, res, err); }
-    if(!email) { return res.sendStatus(404); }
-    //TODO: Take this out
-      if(email.verified == false) {
-        email.remove(function(err) {
-          if(err) { return handleError(req, res, err); }
-          return res.sendStatus(204);
-        });
-      } else {
-        return res.sendStatus(401);
-      }
-  });
-};
 
 function handleError(req, res, err) {
   var loggly = require('loggly');

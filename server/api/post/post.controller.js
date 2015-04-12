@@ -8,21 +8,6 @@ var Invitation = require('../invitation/invitation.model');
 var plivo = require('plivo');
 var uuid = require('node-uuid');
 
-
-exports.tags = function(req, res) {
-  /*var userId = req.user._id;*/
-  if(!req.user.phone)  return res.sendStatus(304);
-  console.log(req.user.phone);
-  if(!req.get("address")) return res.sendStatus(403);
-  var query = Post.where({address: req.get("address")});
-  query.findOne( function(err, post) {
-    if(err) { return handleError(req, res, err); }
-    if(!post) { return res.sendStatus(404); }
-    return res.json({list: post.usertotag[req.user.phone]});
-  });
-
-};
-
 // Get list of ratings
 exports.index = function(req, res) {
 
@@ -46,7 +31,7 @@ exports.index = function(req, res) {
       }
     };
 
-  Post.find(query,"-usertotag -tagtouser -_id -userpoints -__ttl -__v", function (err, posts) {
+  Post.find(query,"-usertotag -tagtouser -_id -__ttl -__v", function (err, posts) {
     if(err) { return handleError(req, res, err); }
     var newPosts = []
     posts.forEach(function(element, index, array) {
@@ -66,8 +51,11 @@ exports.index = function(req, res) {
           }
         });
         if(tmp.weight > 0) { 
+          if(tmp.userpoints.hasOwnProperty(req.user.phone))  tmp.score = tmp.userpoints[req.user.phone];
+          else  tmp.score = Math.round(req.user.score);
           tmp.shares = undefined;
           tmp.invitees = undefined;
+          tmp.userpoints = undefined;
           newPosts.push(tmp);
         }
       }
@@ -105,8 +93,11 @@ exports.create = function(req, res) {
       if(invite) {
         if(invite.from) {
           tempuser = invite.from;
-          tempuser.score += 3;
+          tempuser.score += 0.3;
         }
+        invite.remove(function(err) {
+          if(err) { return console.log(err); }
+        });
       }
       tempuser.save(function(err){
         if(!post) {
@@ -125,13 +116,13 @@ exports.create = function(req, res) {
         if(!post.shares) post.shares = {};
 
         if(post.shares.hasOwnProperty(user.phone)) {
-          _.union(post.shares[user.phone], privates);
+          post.shares[user.phone] = _.union(post.shares[user.phone], privates);
         } else {
           post.shares[user.phone] = _.uniq(privates);
         }
 
         if(!post.userpoints.hasOwnProperty(user.phone))
-          post.userpoints[user.phone] = user.score;
+          post.userpoints[user.phone] = Math.round(user.score);
 
         post.userpoints[user.phone] -= tags.length;
         if(post.userpoints[user.phone] < 0) return res.sendStatus(403);
@@ -164,7 +155,7 @@ exports.create = function(req, res) {
             users.forEach(function(element, index, array){
               if(element.substring(1) != user.phone) {
                 if(post.shares.hasOwnProperty(element.substring(1))) {
-                  _.union(post.shares[element.substring(1)], privates);
+                  post.shares[element.substring(1)] = _.union(post.shares[element.substring(1)], privates);
                 } else {
                   post.shares[element.substring(1)] = _.uniq(privates);
                 }
@@ -207,39 +198,47 @@ exports.create = function(req, res) {
                     });
                   }
 
-                } else if(req.user.phone != user.phone){
-                  // Push notification
-
-                  var name = req.user.phone;
-                  if(req.user.username) name = req.user.username;
-                  var feed = {type: "invitation", tags: _.uniq(_.filter(tags,function(n){ return !n.match(/^@/); })), host: req.user.phone, loc: req.body.loc, name: name, address: req.body.address};
-                  var invitation = Invitation( { address: req.body.address, from: req.user._id, to: user.phone } );
-
-                  if(user.feed) {
-                    user.feed.push(feed);
-                  } else {
-                    user.feed = [feed];
-                  }
-                  user.score++;
-                  user.markModified("feed");
-                  /*user.save(function(err){
-                    if (err) return handleError(req, res, err);
-                  });*/
-                  user.save(function(err){
+                  req.user.score += 0.1;
+                  req.user.save(function(err){
                     if (err) console.log(err);
-                    User.findById(req.user._id,function(err, user) {
-                      user.score++;
+                  });
+
+                } else if(req.user.phone != user.phone){
+
+                  if(!_.contains(post.usertotag[req.user.phone],element)) {
+                    // Push notification
+
+                    var name = req.user.phone;
+                    if(req.user.username) name = req.user.username;
+                    var feed = {type: "invitation", tags: _.uniq(_.filter(tags,function(n){ return !n.match(/^@/); })), host: req.user.phone, loc: req.body.loc, name: name, address: req.body.address, timestamp: Date.now() };
+                    var invitation = Invitation( { address: req.body.address, from: req.user._id, to: user.phone } );
+
+                    if(user.feed) {
+                      user.feed.push(feed);
+                    } else {
+                      user.feed = [feed];
+                    }
+                    user.score += 0.1;
+                    user.markModified("feed");
+                    /*user.save(function(err){
+                      if (err) return handleError(req, res, err);
+                    });*/
+                    user.save(function(err){
                       if (err) console.log(err);
-                      if (user) {
-                        user.save(function(err) {
-                          if (err) console.log(err);
-                        });
-                      }
+                      User.findById(req.user._id,function(err, user) {
+                        user.score += 0.1;
+                        if (err) console.log(err);
+                        if (user) {
+                          user.save(function(err) {
+                            if (err) console.log(err);
+                          });
+                        }
+                      });
                     });
-                  });
-                  invitation.save(function(err){
-                    if (err) return console.log(err);
-                  });
+                    invitation.save(function(err){
+                      if (err) return console.log(err);
+                    });
+                  }
                 }
               });
             });

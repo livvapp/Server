@@ -198,7 +198,7 @@ exports.score = function(req, res, next) {
   }, '-salt -hashedPassword', function(err, user) { // don't ever give out the password or salt
     if (err) return next(err);
     if (!user) return res.sendStatus(401);
-    res.json({score:user.score});
+    res.json({score:Math.round(user.score)});
   });
 };
 
