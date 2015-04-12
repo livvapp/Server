@@ -143,19 +143,6 @@ exports.username = function(req, res, next) {
 
 };
 
-exports.friends = function(req, res, next) {
-  
-  // Make sure each is string
-  var user = req.user;
-  if(!(req.body instanceof Array))  return res.sendStatus(403);
-  user.friends = _.uniq(req.body);
-  user.save(function(err){
-    if (err) return validationError(req, res, err);
-    return res.sendStatus(200);
-  });
-
-};
-
 /**
  * Activate an account by confirming the phone number
  */

@@ -16,7 +16,6 @@ var UserSchema = new Schema({
     default: 'user'
   },
   username: String,
-  friends: [String],
   hashedPassword: String,
   provider: String,
   score: {type: Number, default: 19},

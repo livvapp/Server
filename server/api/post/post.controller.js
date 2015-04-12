@@ -26,10 +26,6 @@ exports.tags = function(req, res) {
 // Get list of ratings
 exports.index = function(req, res) {
 
-  var myfriends = req.user.friends;
-  if(!myfriends)  myfriends = [];
-  myfriends.push(req.user.phone);
-
   // Possibly use geoWithin centerSphere
   var query = {
       loc: {
@@ -50,39 +46,28 @@ exports.index = function(req, res) {
       }
     };
 
-   // query.select("-usertotag -tagtouser");
-
-  Post.find(query,"-usertotag -_id -userpoints -__ttl -__v", function (err, posts) {
+  Post.find(query,"-usertotag -tagtouser -_id -userpoints -__ttl -__v", function (err, posts) {
     if(err) { return handleError(req, res, err); }
-    /*var tags = {};
-    posts.forEach(function(element, index, array) {
-      element.tags.forEach(function(el, i, arr){
-        if(tags[el]) {
-          tags[el] += 1;
-        } else {
-          tags[el] = 1;
-        }
-      });
-    });*/
     var newPosts = []
     posts.forEach(function(element, index, array) {
       var con = true;
       if(element.toptag.charAt(0) == '#')
-        if(_.intersection(myfriends, element.tagtouser[element.toptag]).length == 0)
+        if(!_.include(element.invitees, req.user.phone))
           con = false;
       if(con) {
         var tmp = element;
         _.forOwn(element.tags,function(value, key){
           //console.log(element.tagtouser);
           if(key.charAt(0) == '#') {
-            if(_.intersection(myfriends, element.tagtouser[key]).length == 0) {
+            if(!_.include(element.shares[req.user.phone], key)) {
               tmp.tags[key] = undefined;
               tmp.weight -= value;
             }
           }
         });
-        if(tmp.weight > 0) {
-          tmp.tagtouser = undefined;  
+        if(tmp.weight > 0) { 
+          tmp.shares = undefined;
+          tmp.invitees = undefined;
           newPosts.push(tmp);
         }
       }
@@ -107,6 +92,9 @@ exports.create = function(req, res) {
   var query = Post.where({address: req.body.address});
   var tags = req.body.tag;//_.uniq(req.body.tag);
   var user = req.user;
+  var privates = _.filter(tags,function(n) {
+    return n.match(/^#/);
+  });
 
 
   query.findOne(function(err, post) {
@@ -126,19 +114,29 @@ exports.create = function(req, res) {
           req.body.usertotag = {};
           req.body.tagtouser = {};
           req.body.userpoints = {};
+          req.body.shares = {};
+          req.body.invitees = [];
           req.body.weight = 0;
           req.body.topweight = 0;
           req.body.toptag = "";
           post = Post(req.body);
         }
+        if(!_.include(post.invitees, user.phone))  post.invitees.push(user.phone);
+        if(!post.shares) post.shares = {};
+
+        if(post.shares.hasOwnProperty(user.phone)) {
+          _.merge(post.shares[user.phone], privates);
+        } else {
+          post.shares[user.phone] = _.uniq(privates);
+        }
 
         if(!post.userpoints.hasOwnProperty(user.phone))
-          post.userpoints[user.phone] = 10000000000; //user.score;
+          post.userpoints[user.phone] = user.score;
 
         post.userpoints[user.phone] -= tags.length;
         if(post.userpoints[user.phone] < 0) return res.sendStatus(403);
 
-         tags.forEach(function(element, index, array) {
+        tags.forEach(function(element, index, array) {
 
            if(typeof element == "string") {
              if(element.indexOf(".") != -1) {
@@ -164,8 +162,16 @@ exports.create = function(req, res) {
           var users = element.match(/@[0-9]{11,14}/g);
           if(users) {
             users.forEach(function(element, index, array){
+              if(element.substring(1) != user.phone) {
+                if(post.shares.hasOwnProperty(element.substring(1))) {
+                  _.merge(post.shares[element.substring(1)], privates);
+                } else {
+                  post.shares[element.substring(1)] = _.uniq(privates);
+                }
+              }
+              if(!_.include(post.invitees, element.substring(1)))  post.invitees.push(element.substring(1));
               var query = User.where({phone: element.substring(1)});
-              query.findOne(function(err, user){
+              query.findOne(function(err, user) {
                 if(err) { return handleError(req, res, err); }
                 if(!user) {
                   if(!_.contains(post.usertotag[req.user.phone],element)) {
@@ -204,8 +210,9 @@ exports.create = function(req, res) {
                 } else if(req.user.phone != user.phone){
                   // Push notification
 
-                  var feed = {type: "invitation", tags: _.uniq(tags), host: req.user.phone, loc: req.body.loc, message: "Message not implemented yet."};
+                  var feed = {type: "invitation", tags: _.uniq(_.filter(tags,function(n){ return !n.match(/^@/); })), host: req.user.phone, loc: req.body.loc, message: "Message not implemented yet."};
                   var invitation = Invitation( { address: req.body.address, from: req.user._id, to: user.phone } );
+
                   if(user.feed) {
                     user.feed.push(feed);
                   } else {
@@ -236,7 +243,6 @@ exports.create = function(req, res) {
             });
           } else {
 
-
             post.weight++;
             if(post.tags.hasOwnProperty(element)) {
               post.tags[element]++;
@@ -263,16 +269,19 @@ exports.create = function(req, res) {
                 post.tagtouser[element].push(user.phone);
             }
          }
+         if(index == array.length - 1) {
+           if(post.toptag == "") return res.sendStatus(304);
+            post.markModified("tags");
+            post.markModified("userpoints");
+            post.markModified("usertotag"); 
+            post.markModified("tagtouser");  
+            post.markModified("shares"); 
+            post.save(function(err){
+              if(err) { return handleError(req, res, err); }
+              return res.sendStatus(200);
+            }); 
+          }
         });
-        if(post.toptag == "") return res.sendStatus(304);
-        post.markModified("tags");
-        post.markModified("userpoints");
-        post.markModified("usertotag"); 
-        post.markModified("tagtouser");    
-        post.save(function(err){
-          if(err) { return handleError(req, res, err); }
-          return res.sendStatus(200);
-        }); 
       });
     });
   });
