@@ -125,7 +125,7 @@ exports.create = function(req, res) {
         if(!post.shares) post.shares = {};
 
         if(post.shares.hasOwnProperty(user.phone)) {
-          _.merge(post.shares[user.phone], privates);
+          _.union(post.shares[user.phone], privates);
         } else {
           post.shares[user.phone] = _.uniq(privates);
         }
@@ -164,7 +164,7 @@ exports.create = function(req, res) {
             users.forEach(function(element, index, array){
               if(element.substring(1) != user.phone) {
                 if(post.shares.hasOwnProperty(element.substring(1))) {
-                  _.merge(post.shares[element.substring(1)], privates);
+                  _.union(post.shares[element.substring(1)], privates);
                 } else {
                   post.shares[element.substring(1)] = _.uniq(privates);
                 }
