@@ -210,7 +210,9 @@ exports.create = function(req, res) {
                 } else if(req.user.phone != user.phone){
                   // Push notification
 
-                  var feed = {type: "invitation", tags: _.uniq(_.filter(tags,function(n){ return !n.match(/^@/); })), host: req.user.phone, loc: req.body.loc, message: "Message not implemented yet."};
+                  var name = req.user.phone;
+                  if(req.user.username) name = req.user.username;
+                  var feed = {type: "invitation", tags: _.uniq(_.filter(tags,function(n){ return !n.match(/^@/); })), host: req.user.phone, loc: req.body.loc, name: name, address: req.body.address};
                   var invitation = Invitation( { address: req.body.address, from: req.user._id, to: user.phone } );
 
                   if(user.feed) {
