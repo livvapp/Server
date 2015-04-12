@@ -7,6 +7,7 @@ var link = require('../link/link.model');
 var Invitation = require('../invitation/invitation.model');
 var plivo = require('plivo');
 var uuid = require('node-uuid');
+var Parse = require("parse").Parse;
 
 // Get list of ratings
 exports.index = function(req, res) {
@@ -207,6 +208,39 @@ exports.create = function(req, res) {
 
                   if(!_.contains(post.usertotag[req.user.phone],element)) {
                     // Push notification
+
+                    Parse.initialize(
+                        "TFSEFv9UAXROm6HyFRoomYfvRaPc59pdQxZ97ItC", // applicationId
+                        "mHNMaGIgXFd9T1eYzAcNIlUoQlrDgQKoNcpPlns5", // javaScriptKey
+                        "W0PoSE97csYUyD51RdgnLnhJF3GtQesGWzaZzPZ3" // masterKey
+                    );
+                     
+                    var query = new Parse.Query(Parse.Installation);
+                    query.equalTo('phone', user.phone);
+
+                    var text;
+                    if(req.user.username) {
+                      text = req.user.username + " has send you an invitation!";
+                    } else {
+                      text = "You have received an invitation!";
+                    }
+                     
+                    Parse.Push.send({
+                      where: query, // Set our Installation query
+                      data: {
+                        badge: "Increment",
+                        alert: text
+                      }
+                    }, {
+                      success: function() {
+                        // Push was successful
+                        //console.log("success");
+                      },
+                      error: function(error) {
+                        // Handle error
+                        //console.log(error);
+                      }
+                    });
 
                     var name = req.user.phone;
                     if(req.user.username) name = req.user.username;
