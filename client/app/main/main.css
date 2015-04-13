@@ -72,8 +72,14 @@ body, html, section, .ng-scope {
   /*font-weight: 200;*/
   /*color: black;*/
   padding: 7px;
-
 }
+
+a.outlined {
+  color: white;
+  text-decoration: none;
+}
+
+
 
 
 /*Sticky footer*/
