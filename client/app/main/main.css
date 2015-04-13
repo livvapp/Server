@@ -28,3 +28,123 @@
     margin-top: 70px;
     border-top: 1px solid #E5E5E5;
 }
+
+
+/*
+  Coming soon stuff
+*/
+
+body, html, section, .ng-scope {
+    min-height: 100%;
+    height: 100%;
+    background-color: #262626;
+    font-family: 'Roboto', sans-serif;
+
+}
+
+.comingsoon {
+  /*margin-top: -100px;*/
+  text-align: center;
+  display: table;
+  width: 100%;
+  color: white;
+  background-color: #262626;
+  min-height: 100%;
+}
+
+
+.vertalign {
+  /*margin-top: -200px;*/
+  vertical-align: middle;
+	display: table-cell;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+
+.outlined {
+  border-style: solid;
+  border-width: 1px;
+  /*background-color: white;*/
+  /*color: #262626;*/
+  /*font-weight: 400;*/
+  /*font-weight: 200;*/
+  /*color: black;*/
+  padding: 7px;
+
+}
+
+
+/*Sticky footer*/
+.footer {
+  position: absolute;
+  bottom: 0px;
+  width: 100%;
+  height: 60px;
+  background-color: transparent;
+  color: white;
+  text-decoration: none;
+  border: none;
+}
+
+.footer a {
+  text-decoration: none;
+  color: white;
+}
+
+
+@media screen and (min-height: 500px) {
+  .footer {
+    position: absolute;
+    bottom: 50px;
+    width: 100%;
+    height: 60px;
+    background-color: transparent;
+    color: white;
+    text-decoration: none;
+    border: none;
+  }
+
+}
+
+/* Responsive: Portrait tablets and up */
+@media screen and (min-width: 768px) {
+    .container {
+        max-width: 730px;
+    }
+
+
+    .comingsoon {
+      margin-top: -100px;
+      text-align: center;
+      display: table;
+      width: 100%;
+      color: white;
+      background-color: #262626;
+      min-height: 100%;
+    }
+
+
+    .vertalign {
+      /*margin-top: -200px;*/
+      vertical-align: middle;
+    	display: table-cell;
+      margin-left: auto;
+      margin-right: auto;
+      width: 100%;
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 50px;
+      width: 100%;
+      height: 60px;
+      background-color: transparent;
+      color: white;
+      text-decoration: none;
+      border: none;
+    }
+
+
+}
